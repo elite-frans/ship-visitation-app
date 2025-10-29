@@ -11,12 +11,20 @@ import { useShipReportStore } from "@/stores/shipReportStore";
 import { storeToRefs } from "pinia";
 import { dateFormatter } from "@/utils/dateFormatter";
 import { useShipReport } from "@/composables/shipReport/useShipReport";
+import ShipReportVisitor from "@/components/shipReport/ShipReportVisitor.vue";
+import { useShipParticipants } from "@/composables/shipReport/useShipParticipants";
+
 const route = useRoute();
 const router = useRouter();
 const shipReportStore = useShipReportStore();
 const visible = ref(false);
 const selectedSection = ref(null);
 const actionType = ref("add");
+const reportId = route.params.id;
+const visibleParticipant = ref(false);
+
+const { formData, getOptions, inputFields, handleSubmit } =
+  useShipParticipants(reportId);
 
 const { report } = storeToRefs(shipReportStore);
 const {
@@ -24,31 +32,27 @@ const {
   updateSectionDetailsInputFields,
   addCustomSectionInputFields,
 } = useShipReport();
+
 const goBack = () => {
   router.push({ name: "ShipReport" });
 };
-const reportId = route.params.id;
+
 const newSection = ref({ title: "", details: "" });
 const newCustomSection = ref({ title: "" });
 const editChildren = ref([]);
-
-// For editing child details
 const editingChildCode = ref(null);
 const editableChildDetails = ref("");
 
-// 🔹 Start editing a child section
 const startChildEditing = (child) => {
   editingChildCode.value = child.section_code;
   editableChildDetails.value = child.details || "";
 };
 
-// 🔹 Cancel editing
 const cancelChildEditing = () => {
   editingChildCode.value = null;
   editableChildDetails.value = "";
 };
 
-// 🔹 Update child description
 const updateChildDescription = async (parentSection, child) => {
   const payload = {
     sections: [
@@ -63,16 +67,8 @@ const updateChildDescription = async (parentSection, child) => {
   cancelChildEditing();
 };
 
-// 🔹 Delete child section (optional confirmation)
-const deleteChildSection = async (parentSection, child) => {
-  const confirmed = confirm(
-    `Are you sure you want to delete "${child.title}"?`
-  );
-  if (!confirmed) return;
-
-  const payload = {};
-
-  await shipReportStore.deleteDetail(reportId, child.section_code);
+const deleteSection = async (id) => {
+  await shipReportStore.deleteCustomSection(reportId, id);
 };
 
 const loading =
@@ -120,26 +116,11 @@ const AddCustomSectionModal = (section) => {
   newCustomSection.value = { title: "", details: "" };
 };
 
-//* Stable
-// const openUpdateSectionModal = (section) => {
-//   selectedSection.value = section;
-//   visible.value = true;
-//   actionType.value = "update";
-//   detailDescription = editChildren.value = section.details;
-//   editChildren.value =
-//     section.children?.map((child) => ({
-//       id: child.id,
-//       section_code: child.section_code || "",
-//       details: child.details || "",
-//     })) || [];
-// };
-
 const openUpdateSectionModal = (section) => {
   selectedSection.value = section;
   visible.value = true;
   actionType.value = "update";
 
-  // ✅ Only include title and details
   editChildren.value = [
     {
       title: section.title,
@@ -177,18 +158,6 @@ const getButtonName = (actionType) => {
   }
 };
 
-const builtInCategories = [
-  "basic_details",
-  "purpose",
-  "crew_management_and_atmosphere",
-  "navigation",
-  "legal",
-  "supplies",
-  "maintenance",
-  "crew_evaluation",
-  "others",
-];
-
 const submitSection = async () => {
   const mode = actionType.value;
 
@@ -218,19 +187,6 @@ const submitSection = async () => {
 
       visible.value = false;
       break;
-
-    // case "update":
-    //   const updatePayload = {
-    //     sections: editChildren.value.map((child) => ({
-    //       section_code: child.section_code,
-    //       details: child.details,
-    //     })),
-    //   };
-
-    //   await shipReportStore.updateSection(reportId, updatePayload);
-
-    //   visible.value = false;
-    //   break;
 
     case "update":
       const updatePayload = {
@@ -265,6 +221,7 @@ const submitSection = async () => {
       break;
   }
 };
+
 onMounted(() => {
   const id = route.params.id;
   shipReportStore.viewReport(id);
@@ -372,6 +329,14 @@ onMounted(() => {
       </div>
     </div>
     <div class="card w-full h-full">
+      <div class="flex justify-end">
+        <Button
+          label="Add Participant"
+          size="small"
+          icon="pi pi-user"
+          @click="visibleParticipant = true"
+        />
+      </div>
       <Tabs value="0">
         <TabList>
           <Tab value="0">Visitor</Tab> <Tab value="1">Interviewer</Tab>
@@ -379,58 +344,25 @@ onMounted(() => {
         </TabList>
         <TabPanels>
           <TabPanel value="0">
-            <div class="space-y-6 text-sm" v-if="report?.Visitor?.length">
-              <div v-for="(visit, key) in report.Visitor" :key="key">
-                <span class="grid grid-cols-2 sm:grid-cols-6 text-neutral-500">
-                  Full Name:
-                  <h1>
-                    {{ visit?.first_name }} {{ visit?.last_name }} |
-                    {{ visit?.rank }}
-                  </h1>
-                </span>
-                <span class="grid grid-cols-2 sm:grid-cols-6 text-neutral-500">
-                  Company:
-                  <h1>{{ visit?.company }}</h1>
-                </span>
-              </div>
-            </div>
-            <p v-else>No visitors found.</p>
+            <ShipReportVisitor
+              :reportId="reportId"
+              :report="report"
+              type="Visitor"
+            />
           </TabPanel>
           <TabPanel value="1">
-            <div class="space-y-6 text-sm" v-if="report?.Interviewer?.length">
-              <div v-for="(visit, key) in report.Interviewer" :key="key">
-                <span class="grid grid-cols-2 sm:grid-cols-6 text-neutral-500">
-                  Full Name:
-                  <h1>
-                    {{ visit?.first_name }} {{ visit?.last_name }} |
-                    {{ visit?.rank }}
-                  </h1>
-                </span>
-                <span class="grid grid-cols-2 sm:grid-cols-6 text-neutral-500">
-                  Company:
-                  <h1>{{ visit?.company }}</h1>
-                </span>
-              </div>
-            </div>
-            <p v-else>No interviewer found.</p>
+            <ShipReportVisitor
+              :reportId="reportId"
+              :report="report"
+              type="Interviewer"
+            />
           </TabPanel>
           <TabPanel value="2">
-            <div class="space-y-6 text-sm" v-if="report?.Interviewee?.length">
-              <div v-for="(visit, key) in report.Interviewee" :key="key">
-                <span class="grid grid-cols-6 text-neutral-500">
-                  Full Name:
-                  <h1>
-                    {{ visit?.first_name }} {{ visit?.last_name }} |
-                    {{ visit?.rank }}
-                  </h1>
-                </span>
-                <span class="grid grid-cols-6 text-neutral-500">
-                  Company:
-                  <h1>{{ visit?.company }}</h1>
-                </span>
-              </div>
-            </div>
-            <p v-else>No interviewee found.</p>
+            <ShipReportVisitor
+              :reportId="reportId"
+              :report="report"
+              type="Interviewee"
+            />
           </TabPanel>
           <TabPanel value="3">
             <div
@@ -468,7 +400,7 @@ onMounted(() => {
                         severity="danger"
                         aria-label="Delete Details"
                         size="small"
-                        @click="openUpdateSectionModal(section)"
+                        @click="deleteSection(section.id)"
                       />
                     </div>
                   </div>
@@ -495,6 +427,7 @@ onMounted(() => {
                           label="Update"
                           size="small"
                           severity="primary"
+                          :loading="shipReportStore.operation.loading"
                           :disabled="shipReportStore.operation.loading"
                           @click="updateDescription(section)"
                         />
@@ -556,6 +489,7 @@ onMounted(() => {
                             label="Update"
                             size="small"
                             severity="primary"
+                            :loading="shipReportStore.operation.loading"
                             :disabled="shipReportStore.operation.loading"
                             @click="updateChildDescription(section, child)"
                           />
@@ -582,12 +516,13 @@ onMounted(() => {
                         @click="startChildEditing(child)"
                       />
                       <Button
+                        v-if="section.category_key === 'custom'"
                         :disabled="shipReportStore.operation.loading"
                         variant="link"
                         severity="danger"
                         label="Delete"
                         size="small"
-                        @click="deleteChildSection(section, child)"
+                        @click="deleteSection(child.id)"
                       />
                     </div>
                   </div>
@@ -613,6 +548,8 @@ onMounted(() => {
               <Button
                 label="Add New Section"
                 size="small"
+                :loading="shipReportStore.operation.loading"
+                :disabled="shipReportStore.operation.loading"
                 @click="AddCustomSectionModal(section)"
               />
             </div>
@@ -621,6 +558,8 @@ onMounted(() => {
       </Tabs>
     </div>
   </div>
+
+  <!-- SECTIONS DIALOG -->
   <Dialog
     v-model:visible="visible"
     modal
@@ -664,6 +603,7 @@ onMounted(() => {
             :label="getButtonName(actionType)"
             severity="primary"
             @click="submitSection"
+            :loading="shipReportStore.operation.loading"
             :disabled="
               (actionType === 'add' && !newSection.title.trim()) ||
               shipReportStore.operation.loading
@@ -707,6 +647,7 @@ onMounted(() => {
             type="button"
             :label="getButtonName(actionType)"
             severity="primary"
+            :loading="shipReportStore.operation.loading"
             @click="submitSection"
             :disabled="
               (actionType === 'addCustomSection' &&
@@ -718,7 +659,7 @@ onMounted(() => {
       </template>
 
       <!-- If editing -->
-      <template v-else>
+      <template v-if="actionType === 'update'">
         <div
           v-for="(child, index) in editChildren"
           :key="child.id"
@@ -756,12 +697,77 @@ onMounted(() => {
             <Button
               type="button"
               label="Update"
+              :disabled="shipReportStore.operation.loading"
+              :loading="shipReportStore.operation.loading"
               severity="success"
               @click="submitSection"
             />
           </div>
         </div>
       </template>
+    </div>
+  </Dialog>
+
+  <!-- PARTICIPANT DIALOG -->
+  <Dialog
+    v-model:visible="visibleParticipant"
+    modal
+    header="Add New Participant"
+    :style="{ width: '30rem' }"
+  >
+    <div class="space-y-4">
+      <div class="space-y-1" v-for="field in inputFields" :key="field.key">
+        <label :for="field.key" class="font-semibold">
+          {{ field.label }}
+        </label>
+
+        <!-- Text / Number -->
+        <InputText
+          v-if="field.type === 'text' || field.type === 'number'"
+          v-model="formData[field.model]"
+          :placeholder="field.placeholder"
+          class="w-full"
+        />
+
+        <!-- Textarea -->
+        <Textarea
+          v-else-if="field.type === 'textarea'"
+          v-model="formData[field.model]"
+          rows="4"
+          class="w-full"
+        />
+
+        <!-- ✅ Dynamic Select -->
+        <Select
+          v-else-if="field.type === 'selection'"
+          v-model="formData[field.model]"
+          :options="getOptions(field)"
+          optionLabel="name"
+          optionValue="value"
+          :placeholder="field.placeholder"
+          class="w-full"
+        />
+
+        <MultiSelect
+          v-else-if="field.type === 'multiselect'"
+          v-model="formData[field.model]"
+          display="chip"
+          :options="getOptions(field)"
+          optionLabel="name"
+          :placeholder="field.placeholder"
+          class="w-full"
+        />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-6">
+      <Button label="Cancel" severity="secondary" @click="visibleParticipant = false" />
+      <Button
+        label="Save"
+        @click="handleSubmit"
+        :loading="shipReportStore.operation.loading"
+        :disabled="shipReportStore.operation.loading"
+      />
     </div>
   </Dialog>
 </template>

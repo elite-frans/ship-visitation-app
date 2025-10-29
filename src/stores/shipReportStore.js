@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { api } from "@/service/http";
 import {
+  PARTICIPANTS_ENDPOINTS,
   REPORT_ENDPOINTS,
   SECTIONS_MANAGEMENT_ENDPOINTS,
 } from "@/apis/endpoints";
@@ -106,6 +107,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
       }
     },
 
+    //* SECTIONS
     async addNewSection(id, payload) {
       this.operation = {
         loading: true,
@@ -206,7 +208,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
         };
       }
     },
-    async deleteDetail(id, payload) {
+    async deleteCustomSection(reportId, id) {
       this.operation = {
         loading: true,
         success: false,
@@ -215,8 +217,43 @@ export const useShipReportStore = defineStore("shipReportStore", {
         type: "delete-detail",
       };
       try {
+        const { data } = await api.delete(
+          SECTIONS_MANAGEMENT_ENDPOINTS.DELETE_SECTION(id)
+        );
+
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "",
+          type: "delete-section",
+        };
+
+        await this.viewReport(reportId);
+      } catch (error) {
+      } finally {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "delete-section",
+        };
+      }
+    },
+
+    //* PARTICIPANTS
+    async addParticipant(reportId, payload) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "add-participant",
+      };
+      try {
         const { data } = await api.put(
-          SECTIONS_MANAGEMENT_ENDPOINTS.DELETE_DETAIL(id),
+          PARTICIPANTS_ENDPOINTS.ADD_PARTICIPANT(reportId),
           payload
         );
 
@@ -225,18 +262,54 @@ export const useShipReportStore = defineStore("shipReportStore", {
           success: true,
           isError: false,
           message: "",
-          type: "delete-detail",
+          type: "add-participant",
         };
-
-        await this.viewReport(id);
+        await this.viewReport(reportId);
       } catch (error) {
+        console.error("❌ addParticipant error:", error);
       } finally {
         this.operation = {
           loading: false,
           success: false,
           isError: false,
           message: "",
-          type: "delete-detail",
+          type: "add-participant",
+        };
+      }
+    },
+
+    //* PARTICIPANTS
+    async updateParticipant(reportId, payload) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "update-participant",
+      };
+      try {
+        const { data } = await api.put(
+          PARTICIPANTS_ENDPOINTS.UPDATE_PARTICIPANT(reportId),
+          payload
+        );
+
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "",
+          type: "update-participant",
+        };
+        await this.viewReport(reportId);
+      } catch (error) {
+        console.error("updateParticipant error:", error);
+      } finally {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "update-participant",
         };
       }
     },
