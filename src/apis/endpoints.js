@@ -14,4 +14,9 @@ export const SECTIONS_MANAGEMENT_ENDPOINTS = {
 export const PARTICIPANTS_ENDPOINTS = {
   ADD_PARTICIPANT: (id) => `api/spa/reports/${id}`,
   UPDATE_PARTICIPANT: (id) => `api/spa/reports/${id}`,
+  DELETE_PARTICIPANT: (id) => `api/spa/reports/${id}`,
+};
+
+export const PERSONS_ENDPOINTS = {
+  GET_PERSONS: "/api/spa/persons?",
 };

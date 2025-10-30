@@ -11,10 +11,10 @@ const router = createRouter({
       component: PrivateView,
       meta: { requiresAuth: true },
       children: [
-        {
-          path: "",
-          redirect: { name: "ship-report" },
-        },
+        // {
+        //   path: "",
+        //   redirect: { name: "ship-report" },
+        // },
         {
           path: "ship-report",
           name: "ShipReport",
@@ -24,6 +24,11 @@ const router = createRouter({
           path: "ship-report-view/:id",
           name: "ShipReportView",
           component: () => import("@/views/shipReport/ShipReportView.vue"),
+        },
+        {
+          path: "persons",
+          name: "Persons",
+          component: () => import("@/views/persons/Persons.vue"),
         },
       ],
     },

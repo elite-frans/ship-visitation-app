@@ -278,7 +278,6 @@ export const useShipReportStore = defineStore("shipReportStore", {
       }
     },
 
-    //* PARTICIPANTS
     async updateParticipant(reportId, payload) {
       this.operation = {
         loading: true,
@@ -310,6 +309,41 @@ export const useShipReportStore = defineStore("shipReportStore", {
           isError: false,
           message: "",
           type: "update-participant",
+        };
+      }
+    },
+
+    async deleteParticipant(reportId, payload) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "delete-participant",
+      };
+      try {
+        const { data } = await api.put(
+          PARTICIPANTS_ENDPOINTS.DELETE_PARTICIPANT(reportId),
+          payload
+        );
+
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "",
+          type: "delete-participant",
+        };
+        await this.viewReport(reportId);
+      } catch (error) {
+        console.error("deleteParticipant error:", error);
+      } finally {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "delete-participant",
         };
       }
     },

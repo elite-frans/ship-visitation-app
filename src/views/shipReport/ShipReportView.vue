@@ -331,7 +331,7 @@ onMounted(() => {
     <div class="card w-full h-full">
       <div class="flex justify-end">
         <Button
-          label="Add Participant"
+          label="Add Visitor"
           size="small"
           icon="pi pi-user"
           @click="visibleParticipant = true"
@@ -339,8 +339,9 @@ onMounted(() => {
       </div>
       <Tabs value="0">
         <TabList>
-          <Tab value="0">Visitor</Tab> <Tab value="1">Interviewer</Tab>
-          <Tab value="2">Interviewee</Tab> <Tab value="3">Sections</Tab>
+          <Tab value="0">Visitors</Tab>
+          <Tab value="1">Interviewee</Tab>
+          <Tab value="2">Sections</Tab>
         </TabList>
         <TabPanels>
           <TabPanel value="0">
@@ -354,17 +355,10 @@ onMounted(() => {
             <ShipReportVisitor
               :reportId="reportId"
               :report="report"
-              type="Interviewer"
-            />
-          </TabPanel>
-          <TabPanel value="2">
-            <ShipReportVisitor
-              :reportId="reportId"
-              :report="report"
               type="Interviewee"
             />
           </TabPanel>
-          <TabPanel value="3">
+          <TabPanel value="2">
             <div
               class="w-full space-y-8 text-sm"
               v-if="report?.sections?.length"
@@ -712,7 +706,7 @@ onMounted(() => {
   <Dialog
     v-model:visible="visibleParticipant"
     modal
-    header="Add New Participant"
+    header="Add New Visitor"
     :style="{ width: '30rem' }"
   >
     <div class="space-y-4">
@@ -737,9 +731,19 @@ onMounted(() => {
           class="w-full"
         />
 
-        <!-- ✅ Dynamic Select -->
         <Select
           v-else-if="field.type === 'selection'"
+          v-model="formData[field.model]"
+          :options="getOptions(field)"
+          optionLabel="name"
+          optionValue="value"
+          :placeholder="field.placeholder"
+          class="w-full"
+        />
+
+        <Select
+          v-else-if="field.type === 'selectionEditable'"
+          editable
           v-model="formData[field.model]"
           :options="getOptions(field)"
           optionLabel="name"
@@ -761,7 +765,11 @@ onMounted(() => {
     </div>
 
     <div class="flex justify-end gap-2 pt-6">
-      <Button label="Cancel" severity="secondary" @click="visibleParticipant = false" />
+      <Button
+        label="Cancel"
+        severity="secondary"
+        @click="visibleParticipant = false"
+      />
       <Button
         label="Save"
         @click="handleSubmit"

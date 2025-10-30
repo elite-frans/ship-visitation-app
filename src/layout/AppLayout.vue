@@ -63,10 +63,9 @@ function isOutsideClicked(event) {
 </script>
 
 <template>
-  <!-- <div class="layout-wrapper" :class="containerClass"> -->
-  <div class="layout-wrapper">
+  <div class="layout-wrapper" :class="containerClass">
     <app-topbar></app-topbar>
-    <!-- <app-sidebar></app-sidebar> -->
+    <app-sidebar></app-sidebar>
     <div class="layout-main-container">
       <!-- <div class="layout-main"> -->
       <div>

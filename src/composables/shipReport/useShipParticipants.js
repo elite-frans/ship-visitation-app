@@ -1,5 +1,5 @@
 import { useShipReportStore } from "@/stores/shipReportStore";
-import { reactive, ref } from "vue";
+import { reactive, ref, watch } from "vue";
 
 export function useShipParticipants(reportId) {
   const visibleEdit = ref(false);
@@ -14,31 +14,34 @@ export function useShipParticipants(reportId) {
     roles: [],
   });
 
+  watch(
+    () => formData.person,
+    (selectedPerson) => {
+      if (selectedPerson) {
+        const [first, last] = selectedPerson.name.split(" ");
+        formData.first_name = first;
+        formData.last_name = last;
+        showNameFields.value = true;
+      } else {
+        showNameFields.value = false;
+        formData.first_name = "";
+        formData.last_name = "";
+      }
+    }
+  );
+
+  const personList = [
+    {
+      name: "John Doe",
+      value: "john doe",
+    },
+    {
+      name: "Sarah Smith",
+      value: "sarah smith",
+    },
+  ];
+
   const inputFields = reactive([
-    {
-      key: "first_name",
-      model: "first_name",
-      label: "First Name",
-      type: "text",
-      placeholder: "Enter first name",
-      required: true,
-    },
-    {
-      key: "last_name",
-      model: "last_name",
-      label: "Last Name",
-      type: "text",
-      placeholder: "Enter last name",
-      required: true,
-    },
-    {
-      key: "rank",
-      model: "rank",
-      label: "Rank",
-      type: "text",
-      placeholder: "Enter last name",
-      required: true,
-    },
     {
       key: "company",
       apiKey: "",
@@ -49,11 +52,35 @@ export function useShipParticipants(reportId) {
       required: true,
     },
     {
-      key: "roles",
-      model: "roles",
-      label: "Roles",
-      type: "multiselect",
-      placeholder: "Select roles",
+      key: "person",
+      model: "person",
+      label: "Person",
+      type: "selectionEditable",
+      placeholder: "Enter person full name",
+      required: true,
+    },
+    {
+      key: "last_name",
+      model: "last_name",
+      label: "Last Name",
+      type: "selectionEditable",
+      placeholder: "Enter last name",
+      required: true,
+    },
+    {
+      key: "first_name",
+      model: "first_name",
+      label: "First Name",
+      type: "text",
+      placeholder: "Enter first name",
+      required: true,
+    },
+    {
+      key: "rank",
+      model: "rank",
+      label: "Rank",
+      type: "text",
+      placeholder: "Enter last name",
       required: true,
     },
   ]);
@@ -87,6 +114,8 @@ export function useShipParticipants(reportId) {
         return companies.value;
       case "roles":
         return roles.value;
+      case "person":
+        return personList;
       default:
         return [];
     }
@@ -101,7 +130,7 @@ export function useShipParticipants(reportId) {
           last_name: formData.last_name,
           rank: formData.rank,
           company: formData.company,
-          roles: formData.roles.map((r) => r.value),
+          roles: "visitor",
         },
       ],
     };
@@ -150,7 +179,17 @@ export function useShipParticipants(reportId) {
 
   const handleDelete = async () => {
     // TODO: call store.deleteParticipant(props.reportId, selectedVisitor.id)
-    console.log("Delete visitor:", selectedVisitor.value);
+    const payload = {
+      merge_participants: true,
+      participants: [
+        {
+          id: selectedVisitor.value.id,
+          roles: formData.roles.map((r) => r.value),
+        },
+      ],
+    };
+
+    await shipReportStore.deleteParticipant(reportId, payload);
     visibleDelete.value = false;
   };
 
