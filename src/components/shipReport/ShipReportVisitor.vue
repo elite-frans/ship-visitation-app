@@ -13,7 +13,6 @@ const {
   shipReportStore,
   formData,
   getOptions,
-  inputFields,
   openEditDialog,
   openDeleteDialog,
   handleUpdate,
@@ -22,11 +21,46 @@ const {
   visibleDelete,
   selectedVisitor,
   updateFields,
+  showRemoveAllDialog,
+  confirmRemoveAll,
+  removeAllPartiLoading,
+  showRetainDialog,
+  selectedVisitors,
+  confirmRetainSelected,
+  openRetainDialog,
+  retainVisitorLoading,
 } = useShipParticipants(reportId);
 </script>
 
 <template>
-  <div class="space-y-6 text-sm pt-2" v-if="report?.[type]?.length">
+  <div class="space-y-6">
+    <div class="flex justify-end">
+      <div class="space-y-1">
+        <h1 class="text-sm">Manage Participants:</h1>
+        <div class="flex items-center my-3 space-x-4">
+          <Button
+            label="Retain Selected Visitors"
+            icon="pi pi-check-circle"
+            size="small"
+            variant="outlined"
+            severity="contrast"
+            @click="openRetainDialog"
+          />
+
+          <Button
+            label="Remove All Visitors"
+            icon="pi pi-user-minus"
+            size="small"
+            variant="outlined"
+            severity="contrast"
+            @click="showRemoveAllDialog = true"
+          />
+        </div>
+      </div>
+    </div>
+    <h1 class="font-bold text-lg">Visitor List:</h1>
+  </div>
+  <div class="space-y-6 text-sm pt-4" v-if="report?.[type]?.length">
     <div v-for="(visit, key) in report[type]" :key="key">
       <div class="flex justify-between">
         <div class="space-y-2">
@@ -41,7 +75,7 @@ const {
             <h1>{{ visit.company }}</h1>
           </span>
         </div>
-        <div class="space-x-3">
+        <!-- <div class="space-x-3">
           <Button
             icon="pi pi-pencil"
             severity="secondary"
@@ -56,7 +90,7 @@ const {
             variant="outlined"
             @click="openDeleteDialog(visit)"
           />
-        </div>
+        </div> -->
       </div>
       <Divider />
     </div>
@@ -136,5 +170,77 @@ const {
         @click="handleDelete"
       />
     </div>
+  </Dialog>
+
+  <!-- REMOVE ALL DIALOG -->
+  <Dialog v-model:visible="showRemoveAllDialog" modal header="Confirm Removal">
+    <div class="p-4">
+      <p>
+        Are you sure you want to <b>remove all visitors</b>?<br />
+        This action cannot be undone.
+      </p>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          @click="showRemoveAllDialog = false"
+        />
+        <Button
+          label="Yes, Remove All"
+          severity="danger"
+          :loading="removeAllPartiLoading"
+          :disabled="removeAllPartiLoading"
+          @click="confirmRemoveAll"
+        />
+      </div>
+    </div>
+  </Dialog>
+
+  <!-- RETAIN VISITORS ALL DIALOG -->
+  <Dialog
+    v-model:visible="showRetainDialog"
+    header="Retain Selected Visitors"
+    modal
+    :style="{ width: '30rem' }"
+  >
+    <p class="text-sm mb-3 text-gray-600">
+      Select the visitors you want to <b>keep</b>. Unselected ones will be
+      removed.
+    </p>
+
+    <div class="max-h-64 overflow-y-auto space-y-2">
+      <div
+        v-for="visitor in report?.[type] || []"
+        :key="visitor.id"
+        class="flex items-center space-x-3"
+      >
+        <Checkbox
+          v-model="selectedVisitors"
+          :inputId="`visitor-${visitor.id}`"
+          :value="visitor.id"
+        />
+        <label :for="`visitor-${visitor.id}`">
+          {{ visitor.first_name }} {{ visitor.last_name }} |
+          {{ visitor.rank }} - {{ visitor.company }}
+        </label>
+      </div>
+    </div>
+
+    <template #footer>
+      <Button
+        label="Cancel"
+        severity="secondary"
+        text
+        @click="showRetainDialog = false"
+      />
+      <Button
+        label="Keep Selected Visitors"
+        severity="danger"
+        :loading="retainVisitorLoading"
+        :disabled="!selectedVisitors.length || retainVisitorLoading"
+        @click="confirmRetainSelected"
+      />
+    </template>
   </Dialog>
 </template>

@@ -16,211 +16,59 @@ import { useShipParticipants } from "@/composables/shipReport/useShipParticipant
 
 const route = useRoute();
 const router = useRouter();
-const shipReportStore = useShipReportStore();
-const visible = ref(false);
-const selectedSection = ref(null);
-const actionType = ref("add");
 const reportId = route.params.id;
-const visibleParticipant = ref(false);
-
-const { formData, getOptions, inputFields, handleSubmit } =
-  useShipParticipants(reportId);
-
+const shipReportStore = useShipReportStore();
 const { report } = storeToRefs(shipReportStore);
+
+const {
+  formData,
+  getOptions,
+  handleSubmit,
+  openAddDialog,
+  showPersonSelect,
+  showManualAdd,
+  visibleParticipant,
+  canSubmit,
+  addManualToList,
+  removeManualFromList,
+  addVisitorLoading,
+} = useShipParticipants(reportId);
+
 const {
   addNewSectionInputFields,
   updateSectionDetailsInputFields,
   addCustomSectionInputFields,
-} = useShipReport();
+  visible,
+  selectedSection,
+  actionType,
+  newSection,
+  newCustomSection,
+  editChildren,
+  editingChildCode,
+  editableChildDetails,
+  startChildEditing,
+  updateChildDescription,
+  deleteSection,
+  editingSectionCode,
+  editableDetails,
+  startEditing,
+  cancelEditing,
+  updateDescription,
+  openAddSectionModal,
+  AddCustomSectionModal,
+  openUpdateSectionModal,
+  getHeaderModal,
+  getButtonName,
+  submitSection,
+} = useShipReport(reportId, shipReportStore);
 
 const goBack = () => {
   router.push({ name: "ShipReport" });
 };
 
-const newSection = ref({ title: "", details: "" });
-const newCustomSection = ref({ title: "" });
-const editChildren = ref([]);
-const editingChildCode = ref(null);
-const editableChildDetails = ref("");
-
-const startChildEditing = (child) => {
-  editingChildCode.value = child.section_code;
-  editableChildDetails.value = child.details || "";
-};
-
-const cancelChildEditing = () => {
-  editingChildCode.value = null;
-  editableChildDetails.value = "";
-};
-
-const updateChildDescription = async (parentSection, child) => {
-  const payload = {
-    sections: [
-      {
-        section_code: child.section_code,
-        details: editableChildDetails.value,
-      },
-    ],
-  };
-
-  await shipReportStore.updateSection(reportId, payload);
-  cancelChildEditing();
-};
-
-const deleteSection = async (id) => {
-  await shipReportStore.deleteCustomSection(reportId, id);
-};
-
 const loading =
   shipReportStore.operation.loading &&
   shipReportStore.operation.type === "view";
-
-const editingSectionCode = ref(null);
-const editableDetails = ref("");
-
-const startEditing = (section) => {
-  editingSectionCode.value = section.section_code;
-  editableDetails.value = section.details || "";
-};
-
-const cancelEditing = () => {
-  editingSectionCode.value = null;
-  editableDetails.value = "";
-};
-
-const updateDescription = async (section) => {
-  const payload = {
-    sections: [
-      {
-        section_code: section.section_code,
-        details: editableDetails.value,
-      },
-    ],
-  };
-
-  await shipReportStore.updateSection(reportId, payload);
-  editingSectionCode.value = null;
-};
-
-const openAddSectionModal = (section) => {
-  selectedSection.value = section;
-  visible.value = true;
-  actionType.value = "add";
-  newSection.value = { title: "", details: "" };
-};
-
-const AddCustomSectionModal = (section) => {
-  selectedSection.value = section;
-  visible.value = true;
-  actionType.value = "addCustomSection";
-  newCustomSection.value = { title: "", details: "" };
-};
-
-const openUpdateSectionModal = (section) => {
-  selectedSection.value = section;
-  visible.value = true;
-  actionType.value = "update";
-
-  editChildren.value = [
-    {
-      title: section.title,
-      details: section.details,
-    },
-  ];
-};
-
-const getHeaderModal = (actionType) => {
-  switch (actionType) {
-    case "add":
-      return "Add Details";
-
-    case "update":
-      return "Edit Section Details";
-
-    case "addCustomSection":
-      return "Add New Custom Section";
-
-    default:
-      return "";
-  }
-};
-
-const getButtonName = (actionType) => {
-  switch (actionType) {
-    case "add":
-      return "Add Section";
-
-    case "addCustomSection":
-      return "Add New Section";
-
-    default:
-      return "";
-  }
-};
-
-const submitSection = async () => {
-  const mode = actionType.value;
-
-  switch (mode) {
-    case "add":
-      const addPayload = {
-        title: newSection.value.title,
-        details: newSection.value.details,
-        parent_section_id: selectedSection.value.id,
-      };
-
-      await shipReportStore.addNewSection(reportId, addPayload);
-
-      visible.value = false;
-      break;
-
-    case "addCustomSection":
-      const addCustomPayload = {
-        custom_sections: [
-          {
-            title: newCustomSection.value.title,
-          },
-        ],
-      };
-
-      await shipReportStore.addNewCustomSection(reportId, addCustomPayload);
-
-      visible.value = false;
-      break;
-
-    case "update":
-      const updatePayload = {
-        sections: [
-          {
-            section_code: selectedSection.value.section_code,
-            title: editChildren.value[0].title,
-            details: editChildren.value[0].details,
-          },
-        ],
-      };
-
-      await shipReportStore.updateSection(reportId, updatePayload);
-      visible.value = false;
-      break;
-
-    case "delete":
-      const deletePayload = {
-        sections: editChildren.value.map((child) => ({
-          section_code: child.section_code,
-          details: child.details,
-        })),
-      };
-
-      await shipReportStore.updateSection(reportId, deletePayload);
-
-      visible.value = false;
-      break;
-
-    default:
-      visible.value = false;
-      break;
-  }
-};
 
 onMounted(() => {
   const id = route.params.id;
@@ -708,63 +556,122 @@ onMounted(() => {
     modal
     header="Add New Visitor"
     :style="{ width: '30rem' }"
+    @update:visible="
+      (val) => {
+        if (!val) resetForm();
+      }
+    "
   >
     <div class="space-y-4">
-      <div class="space-y-1" v-for="field in inputFields" :key="field.key">
-        <label :for="field.key" class="font-semibold">
-          {{ field.label }}
-        </label>
-
-        <!-- Text / Number -->
-        <InputText
-          v-if="field.type === 'text' || field.type === 'number'"
-          v-model="formData[field.model]"
-          :placeholder="field.placeholder"
-          class="w-full"
-        />
-
-        <!-- Textarea -->
-        <Textarea
-          v-else-if="field.type === 'textarea'"
-          v-model="formData[field.model]"
-          rows="4"
-          class="w-full"
-        />
-
+      <!-- Company -->
+      <div>
+        <label class="font-semibold">Company</label>
         <Select
-          v-else-if="field.type === 'selection'"
-          v-model="formData[field.model]"
-          :options="getOptions(field)"
+          v-model="formData.company"
+          :options="getOptions({ model: 'company' })"
           optionLabel="name"
           optionValue="value"
-          :placeholder="field.placeholder"
-          class="w-full"
-        />
-
-        <Select
-          v-else-if="field.type === 'selectionEditable'"
-          editable
-          v-model="formData[field.model]"
-          :options="getOptions(field)"
-          optionLabel="name"
-          optionValue="value"
-          :placeholder="field.placeholder"
-          class="w-full"
-        />
-
-        <MultiSelect
-          v-else-if="field.type === 'multiselect'"
-          v-model="formData[field.model]"
-          display="chip"
-          :options="getOptions(field)"
-          optionLabel="name"
-          :placeholder="field.placeholder"
+          placeholder="Select company"
           class="w-full"
         />
       </div>
+
+      <!-- Participants -->
+      <div v-if="showPersonSelect && !showManualAdd">
+        <label class="font-semibold">Participants</label>
+
+        <!-- Custom option template to show "New Added" -->
+        <MultiSelect
+          v-model="formData.participant"
+          display="chip"
+          :options="getOptions({ model: 'participant' })"
+          optionLabel="name"
+          optionValue="value"
+          placeholder="Select participants"
+          class="w-full"
+        >
+          <template #option="slotProps">
+            <div class="flex items-center justify-between w-full">
+              <span>{{ slotProps.option.name }}</span>
+              <div class="flex items-center">
+                <Tag
+                  v-if="slotProps.option.isNew"
+                  severity="success"
+                  value="New Added"
+                />
+                <!-- <Button
+                  v-if="slotProps.option.isNew"
+                  icon="pi pi-trash"
+                  text
+                  rounded
+                  class="ml-2"
+                  @click.stop="removeManualFromList(slotProps.option)"
+                /> -->
+              </div>
+            </div>
+          </template>
+        </MultiSelect>
+      </div>
+
+      <!-- Manual Add Button -->
+      <div class="text-right" v-if="showPersonSelect && !showManualAdd">
+        <Button
+          label="Add Participant"
+          icon="pi pi-user-plus"
+          text
+          @click="showManualAdd = true"
+        />
+      </div>
+
+      <!-- Manual Add Fields -->
+      <div v-if="showManualAdd" class="space-y-2">
+        <div>
+          <label class="font-semibold">Last Name</label>
+          <InputText
+            v-model="formData.last_name"
+            placeholder="Enter last name"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="font-semibold">First Name</label>
+          <InputText
+            v-model="formData.first_name"
+            placeholder="Enter first name"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="font-semibold">Rank</label>
+          <InputText
+            v-model="formData.rank"
+            placeholder="Enter rank"
+            class="w-full"
+          />
+        </div>
+
+        <div class="flex justify-between pt-6">
+          <Button
+            label="Back to Select List"
+            icon="pi pi-arrow-left"
+            text
+            @click="showManualAdd = false"
+          />
+          <Button
+            label="Add Participant"
+            icon="pi pi-plus"
+            severity="success"
+            @click="addManualToList"
+            :disabled="
+              !formData.first_name.trim() || !formData.last_name.trim()
+            "
+          />
+        </div>
+      </div>
     </div>
 
-    <div class="flex justify-end gap-2 pt-6">
+    <!-- Footer Buttons -->
+    <div v-if="!showManualAdd" class="flex justify-end gap-2 pt-6">
       <Button
         label="Cancel"
         severity="secondary"
@@ -773,8 +680,8 @@ onMounted(() => {
       <Button
         label="Save"
         @click="handleSubmit"
-        :loading="shipReportStore.operation.loading"
-        :disabled="shipReportStore.operation.loading"
+        :disabled="!canSubmit || addVisitorLoading"
+        :loading="addVisitorLoading"
       />
     </div>
   </Dialog>

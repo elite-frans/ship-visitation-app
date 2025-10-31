@@ -1,6 +1,19 @@
-import { reactive } from "vue";
+import { reactive, onMounted, ref } from "vue";
 
-export function useShipReport() {
+export function useShipReport(reportId, shipReportStore) {
+  const visible = ref(false);
+  const selectedSection = ref(null);
+  const actionType = ref("add");
+
+  const newSection = ref({ title: "", details: "" });
+  const newCustomSection = ref({ title: "" });
+  const editChildren = ref([]);
+  const editingChildCode = ref(null);
+  const editableChildDetails = ref("");
+
+  const editingSectionCode = ref(null);
+  const editableDetails = ref("");
+
   const addNewSectionInputFields = reactive([
     {
       key: "title",
@@ -89,10 +102,207 @@ export function useShipReport() {
     },
   ];
 
+  const startChildEditing = (child) => {
+    editingChildCode.value = child.section_code;
+    editableChildDetails.value = child.details || "";
+  };
+
+  const cancelChildEditing = () => {
+    editingChildCode.value = null;
+    editableChildDetails.value = "";
+  };
+
+  const updateChildDescription = async (parentSection, child) => {
+    const payload = {
+      sections: [
+        {
+          section_code: child.section_code,
+          details: editableChildDetails.value,
+        },
+      ],
+    };
+
+    await shipReportStore.updateSection(reportId, payload);
+    cancelChildEditing();
+  };
+
+  const deleteSection = async (id) => {
+    await shipReportStore.deleteCustomSection(reportId, id);
+  };
+
+  const startEditing = (section) => {
+    editingSectionCode.value = section.section_code;
+    editableDetails.value = section.details || "";
+  };
+
+  const cancelEditing = () => {
+    editingSectionCode.value = null;
+    editableDetails.value = "";
+  };
+
+  const updateDescription = async (section) => {
+    const payload = {
+      sections: [
+        {
+          section_code: section.section_code,
+          details: editableDetails.value,
+        },
+      ],
+    };
+
+    await shipReportStore.updateSection(reportId, payload);
+    editingSectionCode.value = null;
+  };
+
+  const openAddSectionModal = (section) => {
+    selectedSection.value = section;
+    visible.value = true;
+    actionType.value = "add";
+    newSection.value = { title: "", details: "" };
+  };
+
+  const AddCustomSectionModal = (section) => {
+    selectedSection.value = section;
+    visible.value = true;
+    actionType.value = "addCustomSection";
+    newCustomSection.value = { title: "", details: "" };
+  };
+
+  const openUpdateSectionModal = (section) => {
+    selectedSection.value = section;
+    visible.value = true;
+    actionType.value = "update";
+
+    editChildren.value = [
+      {
+        title: section.title,
+        details: section.details,
+      },
+    ];
+  };
+
+  const getHeaderModal = (actionType) => {
+    switch (actionType) {
+      case "add":
+        return "Add Details";
+
+      case "update":
+        return "Edit Section Details";
+
+      case "addCustomSection":
+        return "Add New Custom Section";
+
+      default:
+        return "";
+    }
+  };
+
+  const getButtonName = (actionType) => {
+    switch (actionType) {
+      case "add":
+        return "Add Section";
+
+      case "addCustomSection":
+        return "Add New Section";
+
+      default:
+        return "";
+    }
+  };
+
+  const submitSection = async () => {
+    const mode = actionType.value;
+
+    switch (mode) {
+      case "add":
+        const addPayload = {
+          title: newSection.value.title,
+          details: newSection.value.details,
+          parent_section_id: selectedSection.value.id,
+        };
+
+        await shipReportStore.addNewSection(reportId, addPayload);
+
+        visible.value = false;
+        break;
+
+      case "addCustomSection":
+        const addCustomPayload = {
+          custom_sections: [
+            {
+              title: newCustomSection.value.title,
+            },
+          ],
+        };
+
+        await shipReportStore.addNewCustomSection(reportId, addCustomPayload);
+
+        visible.value = false;
+        break;
+
+      case "update":
+        const updatePayload = {
+          sections: [
+            {
+              section_code: selectedSection.value.section_code,
+              title: editChildren.value[0].title,
+              details: editChildren.value[0].details,
+            },
+          ],
+        };
+
+        await shipReportStore.updateSection(reportId, updatePayload);
+        visible.value = false;
+        break;
+
+      case "delete":
+        const deletePayload = {
+          sections: editChildren.value.map((child) => ({
+            section_code: child.section_code,
+            details: child.details,
+          })),
+        };
+
+        await shipReportStore.updateSection(reportId, deletePayload);
+
+        visible.value = false;
+        break;
+
+      default:
+        visible.value = false;
+        break;
+    }
+  };
+
   return {
     addNewSectionInputFields,
     updateSectionDetailsInputFields,
     addCustomSectionInputFields,
     shipReportCol,
+    visible,
+    selectedSection,
+    actionType,
+    newSection,
+    newCustomSection,
+    editChildren,
+    editingChildCode,
+    editableChildDetails,
+    startChildEditing,
+
+    updateChildDescription,
+    deleteSection,
+
+    editingSectionCode,
+    editableDetails,
+
+    startEditing,
+    cancelEditing,
+    updateDescription,
+    openAddSectionModal,
+    AddCustomSectionModal,
+    openUpdateSectionModal,
+    getHeaderModal,
+    getButtonName,
+    submitSection,
   };
 }

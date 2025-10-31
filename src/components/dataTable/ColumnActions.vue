@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import Menu from "primevue/menu";
 import Button from "primevue/button";
@@ -7,54 +7,46 @@ import { useShipReportStore } from "@/stores/shipReportStore";
 
 const props = defineProps({
   row: { type: Object, required: true },
+  handlers: Object, // 👈 new prop
 });
 
 const router = useRouter();
 const menu = ref();
 const shipReportStore = useShipReportStore();
 
-const handleView = () => {
-  router.push({ name: "ShipReportView", params: { id: props.row.id } });
-};
-
-const handleViewNewTab = () => {
-  const url = router.resolve({
-    name: "ShipReportView",
-    params: { id: props.row.id },
-  }).href;
-  window.open(url, "_blank");
-};
-
-const handleDelete = () => {
-  shipReportStore.deleteReport(props.row.id);
-};
-
-const items = ref([
-  {
-    label: "Actions",
-    items: [
-      {
-        label: "View",
-        icon: "pi pi-eye",
-        command: handleView,
-      },
-      {
-        label: "View on New Tab",
-        icon: "pi pi-external-link",
-        command: handleViewNewTab,
-      },
-      {
-        label: "Delete",
-        icon: "pi pi-trash",
-        command: handleDelete,
-      },
-    ],
-  },
-]);
-
 const toggle = (event) => {
   menu.value.toggle(event);
 };
+
+// Default ShipReport actions fallback
+const defaultActions = [
+  {
+    label: "View",
+    icon: "pi pi-eye",
+    command: () => router.push({ name: "ShipReportView", params: { id: props.row.id } }),
+  },
+  {
+    label: "View on New Tab",
+    icon: "pi pi-external-link",
+    command: () => {
+      const url = router.resolve({ name: "ShipReportView", params: { id: props.row.id } }).href;
+      window.open(url, "_blank");
+    },
+  },
+  {
+    label: "Delete",
+    icon: "pi pi-trash",
+    command: () => shipReportStore.deleteReport(props.row.id),
+  },
+];
+
+// If parent passes custom handlers, use them
+const menuItems = computed(() => {
+  if (props.handlers?.getItems) {
+    return props.handlers.getItems(props.row);
+  }
+  return [{ label: "Actions", items: defaultActions }];
+});
 </script>
 
 <template>
@@ -69,6 +61,6 @@ const toggle = (event) => {
       aria-haspopup="true"
       aria-controls="overlay_menu"
     />
-    <Menu ref="menu" id="overlay_menu" :model="items" :popup="true" />
+    <Menu ref="menu" id="overlay_menu" :model="menuItems" :popup="true" />
   </div>
 </template>

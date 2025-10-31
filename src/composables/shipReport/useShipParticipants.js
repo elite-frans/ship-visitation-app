@@ -1,211 +1,323 @@
 import { useShipReportStore } from "@/stores/shipReportStore";
-import { reactive, ref, watch } from "vue";
+import { reactive, ref, watch, computed, nextTick } from "vue";
 
 export function useShipParticipants(reportId) {
-  const visibleEdit = ref(false);
-  const visibleDelete = ref(false);
-  const selectedVisitor = ref(null);
+  const shipReportStore = useShipReportStore();
+
+  const visibleParticipant = ref(false);
+  const showPersonSelect = ref(false);
+  const showManualAdd = ref(false);
+
+  const showRemoveAllDialog = ref(false);
+  const showRetainDialog = ref(false);
+
+  const selectedVisitors = ref([]);
+
+  const report = ref({
+    visitors: [],
+  });
+
+  const type = "visitors";
+
+  const removeAllPartiLoading = computed(() =>
+    shipReportStore.isLoading("remove-all-participant")
+  );
+
+  const addVisitorLoading = computed(() =>
+    shipReportStore.isLoading("add-participant")
+  );
+
+  const retainVisitorLoading = computed(() =>
+    shipReportStore.isLoading("retain-selected-participants")
+  );
 
   const formData = reactive({
+    company: null,
+    participant: [],
     first_name: "",
     last_name: "",
     rank: "",
-    company: null,
-    roles: [],
+  });
+
+  const resetForm = () => {
+    formData.company = null;
+    formData.participant = [];
+    formData.first_name = "";
+    formData.last_name = "";
+    formData.rank = "";
+    showPersonSelect.value = false;
+    showManualAdd.value = false;
+  };
+
+  watch(visibleParticipant, (val) => {
+    if (!val) resetForm();
   });
 
   watch(
-    () => formData.person,
-    (selectedPerson) => {
-      if (selectedPerson) {
-        const [first, last] = selectedPerson.name.split(" ");
-        formData.first_name = first;
-        formData.last_name = last;
-        showNameFields.value = true;
+    () => formData.company,
+    (newVal) => {
+      showPersonSelect.value = !!newVal;
+      if (!newVal) {
+        formData.participant = [];
+        showManualAdd.value = false;
       } else {
-        showNameFields.value = false;
-        formData.first_name = "";
-        formData.last_name = "";
+        formData.participant = formData.participant.filter((val) => {
+          const p = participantList.value.find((x) => x.value === val);
+          return p && p.company.toLowerCase() === newVal.toLowerCase();
+        });
       }
     }
   );
 
-  const personList = [
-    {
-      name: "John Doe",
-      value: "john doe",
-    },
+  const participantList = ref([
+    { name: "John Doe", company: "KRBS", rank: "Master", value: "john_doe" },
     {
       name: "Sarah Smith",
-      value: "sarah smith",
-    },
-  ];
-
-  const inputFields = reactive([
-    {
-      key: "company",
-      apiKey: "",
-      model: "company",
-      label: "Company",
-      type: "selection",
-      placeholder: "Select company",
-      required: true,
+      company: "KRBS",
+      rank: "MSI",
+      value: "sarah_smith",
     },
     {
-      key: "person",
-      model: "person",
-      label: "Person",
-      type: "selectionEditable",
-      placeholder: "Enter person full name",
-      required: true,
+      name: "Frank Sinatra",
+      company: "Elite",
+      rank: "MSI",
+      value: "frank_sinatra",
     },
     {
-      key: "last_name",
-      model: "last_name",
-      label: "Last Name",
-      type: "selectionEditable",
-      placeholder: "Enter last name",
-      required: true,
-    },
-    {
-      key: "first_name",
-      model: "first_name",
-      label: "First Name",
-      type: "text",
-      placeholder: "Enter first name",
-      required: true,
-    },
-    {
-      key: "rank",
-      model: "rank",
-      label: "Rank",
-      type: "text",
-      placeholder: "Enter last name",
-      required: true,
+      name: "Magnus Carl",
+      company: "Elite",
+      rank: "Master",
+      value: "magnus Carl",
     },
   ]);
-
-  const updateFields = reactive([
-    {
-      key: "roles",
-      model: "roles",
-      label: "Roles",
-      type: "multiselect",
-      placeholder: "Select roles",
-      required: true,
-    },
-  ]);
-
-  const shipReportStore = useShipReportStore();
 
   const companies = ref([
     { name: "KRBS", value: "krbs" },
     { name: "Elite", value: "elite" },
   ]);
 
-  const roles = ref([
-    { name: "Visitor", value: "visitor" },
-    { name: "Interviewer", value: "interviewer" },
-  ]);
+  const filteredParticipants = computed(() => {
+    if (!formData.company) return [];
+    return participantList.value.filter(
+      (p) => p.company.toLowerCase() === formData.company.toLowerCase()
+    );
+  });
 
   const getOptions = (field) => {
     switch (field.model) {
       case "company":
         return companies.value;
-      case "roles":
-        return roles.value;
-      case "person":
-        return personList;
+      case "participant":
+        return filteredParticipants.value;
       default:
         return [];
     }
   };
 
+  const canSubmit = computed(() => {
+    if (showManualAdd.value) {
+      return (
+        formData.company &&
+        formData.first_name.trim() &&
+        formData.last_name.trim()
+      );
+    } else {
+      return formData.company && formData.participant.length > 0;
+    }
+  });
+
   const handleSubmit = async () => {
     const payload = {
       merge_participants: true,
-      participants: [
-        {
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          rank: formData.rank,
-          company: formData.company,
-          roles: "visitor",
-        },
-      ],
+      participants: [],
     };
+
+    // Build payload based on selected participants
+    formData.participant.forEach((val) => {
+      const participant = participantList.value.find((p) => p.value === val);
+      if (!participant) return;
+
+      const [first, last] = participant.name.split(" ");
+
+      payload.participants.push({
+        first_name: first,
+        last_name: last || "",
+        rank: participant.rank || "",
+        company: formData.company,
+        roles: ["visitor"],
+      });
+    });
 
     await shipReportStore.addParticipant(reportId, payload);
+
+    formData.company = null;
+    formData.participant = [];
+    formData.first_name = "";
+    formData.last_name = "";
+    formData.rank = "";
+    showPersonSelect.value = false;
+    showManualAdd.value = false;
+
+    visibleParticipant.value = false;
   };
 
-  //   const openEditDialog = (visitor) => {
-  //     selectedVisitor.value = visitor;
-
-  //     // Prefill formData dynamically
-  //     Object.keys(formData).forEach((key) => {
-  //       formData[key] = visitor[key] ?? null;
-  //     });
-
-  //     visibleEdit.value = true;
-  //   };
-
-  const openEditDialog = (visitor) => {
-    selectedVisitor.value = visitor;
-    formData.roles = visitor.roles?.map((r) => ({ name: r, value: r })) || [];
-    visibleEdit.value = true;
+  const openAddDialog = () => {
+    Object.keys(formData).forEach((k) => {
+      formData[k] = Array.isArray(formData[k]) ? [] : "";
+    });
+    formData.company = null;
+    showPersonSelect.value = false;
+    showManualAdd.value = false;
+    visibleParticipant.value = true;
   };
 
-  const openDeleteDialog = (visitor) => {
-    selectedVisitor.value = visitor;
-    visibleDelete.value = true;
+  // const addManualToList = () => {
+  //   if (!formData.first_name.trim() || !formData.last_name.trim()) return;
+
+  //   const fullName =
+  //     `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
+
+  //   const exists = participantList.value.some(
+  //     (p) => p.name.toLowerCase() === fullName.toLowerCase()
+  //   );
+  //   if (exists) return;
+
+  //   participantList.value.push({
+  //     name: fullName,
+  //     value: fullName.toLowerCase().replace(/\s+/g, "_"),
+  //     rank: formData.rank,
+  //     isNew: true, // ✅ mark as new
+  //   });
+
+  //   formData.first_name = "";
+  //   formData.last_name = "";
+  //   formData.rank = "";
+
+  //   showManualAdd.value = false;
+  // };
+
+  const addManualToList = () => {
+    if (!formData.first_name.trim() || !formData.last_name.trim()) return;
+    if (!formData.company) return; // company must be selected
+
+    const fullName =
+      `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
+
+    const exists = participantList.value.some(
+      (p) =>
+        p.name.toLowerCase() === fullName.toLowerCase() &&
+        p.company.toLowerCase() === formData.company.toLowerCase()
+    );
+    if (exists) return;
+
+    // ✅ Automatically tie this new participant to the selected company
+    participantList.value.push({
+      name: fullName,
+      value: fullName.toLowerCase().replace(/\s+/g, "_"),
+      rank: formData.rank,
+      company: formData.company,
+      isNew: true,
+    });
+
+    formData.first_name = "";
+    formData.last_name = "";
+    formData.rank = "";
+    showManualAdd.value = false;
   };
 
-  const handleUpdate = async () => {
+  const removeManualFromList = (participant) => {
+    participantList.value = participantList.value.filter(
+      (p) => p.value !== participant.value
+    );
+
+    // Also deselect if it was already selected
+    formData.participant = formData.participant.filter(
+      (p) => p.value !== participant.value
+    );
+  };
+
+  // const openRemoveAllDialog = () => {
+  //   showRemoveAllDialog.value = true;
+  // };
+
+  const confirmRemoveAll = async () => {
+    console.log("All visitors removed");
+
+    await shipReportStore.removeAllParticipant(reportId);
+    showRemoveAllDialog.value = false;
+  };
+
+  // const openRetainDialog = async () => {
+  //   showRetainDialog.value = true;
+
+  //   await nextTick();
+
+  //   const visitors =
+  //     report?.visitors || report?.participants || report?.[report.type] || [];
+
+  //   if (visitors.length) {
+  //     selectedVisitors.value = visitors.map((v) => v.id);
+  //   }
+  // };
+
+  const openRetainDialog = async () => {
+    showRetainDialog.value = true;
+
+    await nextTick(); // wait until dialog renders
+
+    // get visitors array safely
+    const visitors =
+      report?.visitors || report?.participants || report?.[type] || [];
+
+    // pre-select all visitor IDs after the DOM renders
+    if (visitors.length) {
+      selectedVisitors.value = visitors.map((v) => v.id);
+    }
+  };
+
+  const confirmRetainSelected = async () => {
+    const retainedIds = selectedVisitors.value;
+    console.log("retainedIds:", retainedIds);
+
+    const visitors = report?.visitors || report?.[type] || [];
+    console.log("visitors:", visitors);
+
+    // Create one participant object per selected ID
     const payload = {
-      merge_participants: true,
-      participants: [
-        {
-          id: selectedVisitor.value.id,
-          roles: formData.roles.map((r) => r.value),
-        },
-      ],
+      participants: retainedIds.map((id) => ({
+        id,
+        roles: ["visitor"],
+      })),
     };
 
-    console.log("Update Payload:", payload);
-    await shipReportStore.addParticipant(reportId, payload);
+    console.log("Retain payload:", payload);
 
-    visibleEdit.value = false;
-  };
-
-  const handleDelete = async () => {
-    // TODO: call store.deleteParticipant(props.reportId, selectedVisitor.id)
-    const payload = {
-      merge_participants: true,
-      participants: [
-        {
-          id: selectedVisitor.value.id,
-          roles: formData.roles.map((r) => r.value),
-        },
-      ],
-    };
-
-    await shipReportStore.deleteParticipant(reportId, payload);
-    visibleDelete.value = false;
+    await shipReportStore.retainSelectedParticipants(reportId, payload);
+    showRetainDialog.value = false;
+    selectedVisitors.value = "";
   };
 
   return {
-    shipReportStore,
     formData,
     getOptions,
     handleSubmit,
-    inputFields,
-    openEditDialog,
-    openDeleteDialog,
-    handleUpdate,
-    handleDelete,
-    visibleEdit,
-    visibleDelete,
-    selectedVisitor,
-    updateFields,
+    openAddDialog,
+    showPersonSelect,
+    showManualAdd,
+    visibleParticipant,
+    canSubmit,
+    shipReportStore,
+    addManualToList,
+    removeManualFromList,
+    resetForm,
+    showRemoveAllDialog,
+    confirmRemoveAll,
+    removeAllPartiLoading,
+    addVisitorLoading,
+    showRetainDialog,
+    openRetainDialog,
+    selectedVisitors,
+    confirmRetainSelected,
+    retainVisitorLoading,
   };
 }

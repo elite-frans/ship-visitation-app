@@ -9,6 +9,8 @@ defineProps({
   page: Number,
   tableName: String,
   loading: Boolean,
+  headerButton: Object,
+  actionHandlers: Object,
 });
 
 const emit = defineEmits(["page", "action", "search", "view"]);
@@ -31,8 +33,20 @@ function handlePage(event) {
     @page="handlePage"
   >
     <template #header>
-      <div class="flex flex-wrap items-center justify-between mb-4">
-        <span class="text-xl font-bold text-neutral-500">{{ tableName }}</span>
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-wrap items-center justify-between">
+          <span class="text-xl font-bold text-neutral-500">{{
+            tableName
+          }}</span>
+        </div>
+        <div>
+          <component
+            v-if="headerButton"
+            :is="headerButton.component"
+            v-bind="headerButton.props"
+            v-on="headerButton.on"
+          />
+        </div>
       </div>
     </template>
     <Column
@@ -42,7 +56,7 @@ function handlePage(event) {
       :header="col.header"
     >
       <template #body="slotProps" v-if="col.field === 'actions'">
-        <ColumnActions :row="slotProps.data" />
+        <ColumnActions :row="slotProps.data" :handlers="actionHandlers" />
       </template>
     </Column>
   </DataTable>

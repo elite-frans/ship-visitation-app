@@ -15,8 +15,14 @@ export const PARTICIPANTS_ENDPOINTS = {
   ADD_PARTICIPANT: (id) => `api/spa/reports/${id}`,
   UPDATE_PARTICIPANT: (id) => `api/spa/reports/${id}`,
   DELETE_PARTICIPANT: (id) => `api/spa/reports/${id}`,
+  REMOVE_ALL_PARTICIPANT: (id) => `api/spa/reports/${id}`,
+  RETAIN_SELECTED_PARTICIPANT: (id) => `api/spa/reports/${id}`,
 };
 
 export const PERSONS_ENDPOINTS = {
   GET_PERSONS: "/api/spa/persons?",
+  ADD_PERSON: "/api/spa/persons",
+  UPDATE_PERSON: (id) => `/api/spa/persons/${id}`,
+  DELETE_PERSON: (id) => `/api/spa/persons/${id}`,
+  VIEW_PERSON: (id) => `/api/spa/persons/${id}`,
 };

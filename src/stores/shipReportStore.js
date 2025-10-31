@@ -32,6 +32,9 @@ export const useShipReportStore = defineStore("shipReportStore", {
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.user) || Boolean(state.token),
+    isLoading: (state) => {
+      return (type) => state.operation.loading && state.operation.type === type;
+    },
   },
   actions: {
     async fetchReports(page, search, type, filters) {
@@ -261,7 +264,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
           loading: false,
           success: true,
           isError: false,
-          message: "",
+          message: "Successfully Added Visitor.",
           type: "add-participant",
         };
         await this.viewReport(reportId);
@@ -344,6 +347,80 @@ export const useShipReportStore = defineStore("shipReportStore", {
           isError: false,
           message: "",
           type: "delete-participant",
+        };
+      }
+    },
+
+    async removeAllParticipant(reportId) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "remove-all-participant",
+      };
+
+      try {
+        const payload = { participants: [] };
+
+        const { data } = await api.put(
+          PARTICIPANTS_ENDPOINTS.REMOVE_ALL_PARTICIPANT(reportId),
+          payload
+        );
+
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "Successfully Removed All Visitors.",
+          type: "remove-all-participant",
+        };
+
+        await this.viewReport(reportId);
+      } catch (error) {
+        console.error("removeAllParticipant error:", error);
+
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: true,
+          message:
+            error.response?.data?.message || "Failed to remove participants",
+          type: "remove-all-participant",
+        };
+      } finally {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          type: "remove-all-participant",
+        };
+      }
+    },
+
+    async retainSelectedParticipants(reportId, payload) {
+      this.operation = {
+        loading: true,
+        success: false,
+        type: "retain-selected-participants",
+      };
+      try {
+        const { data } = await api.put(
+          PARTICIPANTS_ENDPOINTS.RETAIN_SELECTED_PARTICIPANT(reportId),
+          payload
+        );
+        await this.viewReport(reportId);
+        this.operation = {
+          loading: false,
+          success: true,
+          type: "retain-selected-participants",
+        };
+      } catch (error) {
+        console.error("retainSelectedParticipants error:", error);
+        this.operation = {
+          loading: false,
+          isError: true,
+          type: "retain-selected-participants",
         };
       }
     },

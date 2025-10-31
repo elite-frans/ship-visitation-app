@@ -30,6 +30,11 @@ const router = createRouter({
           name: "Persons",
           component: () => import("@/views/persons/Persons.vue"),
         },
+        {
+          path: "person-view/:id",
+          name: "PersonView",
+          component: () => import("@/views/persons/PersonView.vue"),
+        },
       ],
     },
     {
