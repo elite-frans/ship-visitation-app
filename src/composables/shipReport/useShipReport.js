@@ -1,4 +1,4 @@
-import { reactive, onMounted, ref } from "vue";
+import { reactive, onMounted, ref, computed } from "vue";
 
 export function useShipReport(reportId, shipReportStore) {
   const visible = ref(false);
@@ -13,6 +13,16 @@ export function useShipReport(reportId, shipReportStore) {
 
   const editingSectionCode = ref(null);
   const editableDetails = ref("");
+
+  const viewReportLoading = computed(() =>
+    shipReportStore.isLoading("view-report")
+  );
+
+  const updateSectionDescLoading = computed(() =>
+    shipReportStore.isLoading("update-section")
+  );
+
+  const isLoadingType = (type) => shipReportStore.isLoading(type);
 
   const addNewSectionInputFields = reactive([
     {
@@ -287,6 +297,7 @@ export function useShipReport(reportId, shipReportStore) {
     editChildren,
     editingChildCode,
     editableChildDetails,
+    cancelChildEditing,
     startChildEditing,
 
     updateChildDescription,
@@ -304,5 +315,9 @@ export function useShipReport(reportId, shipReportStore) {
     getHeaderModal,
     getButtonName,
     submitSection,
+
+    viewReportLoading,
+    updateSectionDescLoading,
+    isLoadingType,
   };
 }

@@ -35,6 +35,7 @@ const {
 } = useShipParticipants(reportId);
 
 const {
+  viewReportLoading,
   addNewSectionInputFields,
   updateSectionDetailsInputFields,
   addCustomSectionInputFields,
@@ -45,6 +46,7 @@ const {
   newCustomSection,
   editChildren,
   editingChildCode,
+  cancelChildEditing,
   editableChildDetails,
   startChildEditing,
   updateChildDescription,
@@ -60,6 +62,8 @@ const {
   getHeaderModal,
   getButtonName,
   submitSection,
+  updateSectionDescLoading,
+  isLoadingType,
 } = useShipReport(reportId, shipReportStore);
 
 const goBack = () => {
@@ -76,7 +80,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <div v-if="loading" class="space-y-9 animate-pulse">
+  <div v-if="viewReportLoading" class="space-y-9 animate-pulse">
     <div class="card w-full h-full space-y-10">
       <!-- Visitation Details Skeleton -->
       <div class="space-y-4">
@@ -269,8 +273,8 @@ onMounted(() => {
                           label="Update"
                           size="small"
                           severity="primary"
-                          :loading="shipReportStore.operation.loading"
-                          :disabled="shipReportStore.operation.loading"
+                          :loading="updateSectionDescLoading"
+                          :disabled="updateSectionDescLoading"
                           @click="updateDescription(section)"
                         />
                       </div>
@@ -331,8 +335,8 @@ onMounted(() => {
                             label="Update"
                             size="small"
                             severity="primary"
-                            :loading="shipReportStore.operation.loading"
-                            :disabled="shipReportStore.operation.loading"
+                            :loading="updateSectionDescLoading"
+                            :disabled="updateSectionDescLoading"
                             @click="updateChildDescription(section, child)"
                           />
                         </div>
@@ -390,8 +394,8 @@ onMounted(() => {
               <Button
                 label="Add New Section"
                 size="small"
-                :loading="shipReportStore.operation.loading"
-                :disabled="shipReportStore.operation.loading"
+                :loading="isLoadingType('add-custom-section')"
+                :disabled="isLoadingType('add-custom-section')"
                 @click="AddCustomSectionModal(section)"
               />
             </div>
@@ -445,10 +449,10 @@ onMounted(() => {
             :label="getButtonName(actionType)"
             severity="primary"
             @click="submitSection"
-            :loading="shipReportStore.operation.loading"
+            :loading="isLoadingType('add-section-detail')"
             :disabled="
               (actionType === 'add' && !newSection.title.trim()) ||
-              shipReportStore.operation.loading
+              isLoadingType('add-section-detail')
             "
           />
         </div>
@@ -489,12 +493,12 @@ onMounted(() => {
             type="button"
             :label="getButtonName(actionType)"
             severity="primary"
-            :loading="shipReportStore.operation.loading"
+            :loading="isLoadingType('add-custom-section')"
             @click="submitSection"
             :disabled="
               (actionType === 'addCustomSection' &&
                 !newCustomSection.title.trim()) ||
-              shipReportStore.operation.loading
+              isLoadingType('add-custom-section')
             "
           />
         </div>
@@ -539,8 +543,8 @@ onMounted(() => {
             <Button
               type="button"
               label="Update"
-              :disabled="shipReportStore.operation.loading"
-              :loading="shipReportStore.operation.loading"
+              :disabled="isLoadingType('update-section')"
+              :loading="isLoadingType('update-section')"
               severity="success"
               @click="submitSection"
             />

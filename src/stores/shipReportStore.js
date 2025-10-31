@@ -61,7 +61,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
         success: false,
         isError: false,
         message: "",
-        type: "view",
+        type: "view-report",
       };
       try {
         const { data: json } = await api.get(REPORT_ENDPOINTS.VIEW_REPORT(id), {
@@ -74,13 +74,25 @@ export const useShipReportStore = defineStore("shipReportStore", {
           success: true,
           isError: false,
           message: "Successfully view report.",
-          type: "view",
+          type: "view-report",
         };
       } catch (error) {
-        this.error =
-          err?.response?.data || err.message || "Something went wrong.";
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message:
+            err?.response?.data || err.message || "Something went wrong.",
+          type: "view-report",
+        };
       } finally {
-        this.loading = false;
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "view-report",
+        };
       }
     },
     async deleteReport(id) {
@@ -117,7 +129,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
         success: false,
         isError: false,
         message: "",
-        type: "add-section",
+        type: "add-section-detail",
       };
       try {
         const { data } = await api.post(
@@ -129,8 +141,8 @@ export const useShipReportStore = defineStore("shipReportStore", {
           loading: false,
           success: true,
           isError: false,
-          message: "",
-          type: "add-section",
+          message: "Successfully Added Detail.",
+          type: "add-section-detail",
         };
         await this.viewReport(id);
       } catch (error) {
@@ -140,7 +152,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
           success: false,
           isError: false,
           message: "",
-          type: "update-section",
+          type: "add-section-detail",
         };
       }
     },
@@ -195,7 +207,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
           loading: false,
           success: true,
           isError: false,
-          message: "",
+          message: "Successfuly Updated Section.",
           type: "update-section",
         };
 
