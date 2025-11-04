@@ -11,7 +11,7 @@ const personStore = usePersonStore();
 const { personDetails } = storeToRefs(personStore);
 
 const goBack = () => {
-  router.push({ name: "ShipReport" });
+  router.push({ name: "Persons" });
 };
 
 onMounted(() => {

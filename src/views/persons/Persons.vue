@@ -6,9 +6,7 @@ import { useDataTableHandler } from "@/composables/dataTable/useDataTableHandler
 import { usePersonStore } from "@/stores/personStore";
 import { usePerson } from "@/composables/persons/usePerson";
 import AddRecordModal from "@/components/modals/AddRecordModal.vue";
-import { useRouter } from "vue-router";
 import EditRecordModal from "@/components/modals/EditRecordModal.vue";
-import { ref } from "vue";
 import DeleteConfirmModal from "@/components/modals/DeleteConfirmModal.vue";
 
 const personStore = usePersonStore();
@@ -18,67 +16,16 @@ const {
   addPersonInputFields,
   addPerson,
   updatePersonInputFields,
+  showEditModal,
+  selectedPerson,
+  showDeleteDialog,
+  personToDelete,
+  handleUpdate,
+  confirmDelete,
+  colActionHandlers,
 } = usePerson();
-const router = useRouter();
-
-const showEditModal = ref(false);
-const selectedPerson = ref(null);
-const showDeleteDialog = ref(false);
-const personToDelete = ref(null);
 
 const { onPage, onSearch } = useDataTableHandler(personStore, "fetchPersons");
-
-const handleEdit = (row) => {
-  selectedPerson.value = { ...row };
-  showEditModal.value = true;
-};
-
-const handleUpdate = async (payload) => {
-  console.log("Updated payload:", payload);
-  const id = payload.id;
-  await personStore.updatePerson(id, payload);
-  showEditModal.value = false;
-};
-
-const handleDelete = (row) => {
-  personToDelete.value = row;
-  showDeleteDialog.value = true;
-};
-
-const confirmDelete = async () => {
-  if (personToDelete.value?.id) {
-    await personStore.deletePerson(personToDelete.value.id);
-  }
-  showDeleteDialog.value = false;
-};
-
-const personActionHandlers = {
-  getItems(row) {
-    return [
-      {
-        label: "Actions",
-        items: [
-          {
-            label: "View Details",
-            icon: "pi pi-eye",
-            command: () =>
-              router.push({ name: "PersonView", params: { id: row.id } }),
-          },
-          {
-            label: "Edit",
-            icon: "pi pi-pencil",
-            command: () => handleEdit(row),
-          },
-          {
-            label: "Delete",
-            icon: "pi pi-trash",
-            command: () => handleDelete(row),
-          },
-        ],
-      },
-    ];
-  },
-};
 </script>
 
 <template>
@@ -88,7 +35,7 @@ const personActionHandlers = {
         <PrimeDataTable
           tableName="Persons"
           :loading="personStore.loading || personStore.operation.loading"
-          :rowData="personDatas"
+          :rowData="personStore.data"
           :colData="personCols"
           :total="personStore.total"
           :perPage="personStore.perPage"
@@ -102,7 +49,7 @@ const personActionHandlers = {
               create: addPerson,
             },
           }"
-          :actionHandlers="personActionHandlers"
+          :actionHandlers="colActionHandlers"
           @page="onPage"
         />
 

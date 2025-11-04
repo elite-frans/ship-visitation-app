@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { api } from "@/service/http";
 import {
   PARTICIPANTS_ENDPOINTS,
+  PERSONS_ENDPOINTS,
   REPORT_ENDPOINTS,
   SECTIONS_MANAGEMENT_ENDPOINTS,
 } from "@/apis/endpoints";
@@ -15,6 +16,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
     message: null,
     error: null,
     data: [],
+    companiesData: [],
     report: null,
 
     perPage: 15,
@@ -48,6 +50,19 @@ export const useShipReportStore = defineStore("shipReportStore", {
         this.total = json.total ?? 0;
         this.perPage = json.per_page ?? 15;
         this.page = json.current_page ?? nextPage;
+      } catch (error) {
+        this.error =
+          err?.response?.data || err.message || "Something went wrong.";
+      } finally {
+        this.loading = false;
+      }
+    },
+    async fetchCompanies() {
+      this.loading = true;
+      try {
+        const { data: json } = await api.get(PERSONS_ENDPOINTS.GET_COMPANIES);
+
+        this.companiesData = json;
       } catch (error) {
         this.error =
           err?.response?.data || err.message || "Something went wrong.";

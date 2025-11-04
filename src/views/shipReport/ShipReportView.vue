@@ -440,6 +440,7 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <Button
             type="button"
+            size="small"
             label="Cancel"
             severity="secondary"
             @click="visible = false"
@@ -448,6 +449,7 @@ onMounted(() => {
             type="button"
             :label="getButtonName(actionType)"
             severity="primary"
+            size="small"
             @click="submitSection"
             :loading="isLoadingType('add-section-detail')"
             :disabled="
@@ -486,6 +488,7 @@ onMounted(() => {
           <Button
             type="button"
             label="Cancel"
+            size="small"
             severity="secondary"
             @click="visible = false"
           />
@@ -493,6 +496,7 @@ onMounted(() => {
             type="button"
             :label="getButtonName(actionType)"
             severity="primary"
+            size="small"
             :loading="isLoadingType('add-custom-section')"
             @click="submitSection"
             :disabled="
@@ -537,12 +541,14 @@ onMounted(() => {
             <Button
               type="button"
               label="Cancel"
+              size="small"
               severity="secondary"
               @click="visible = false"
             />
             <Button
               type="button"
               label="Update"
+              size="small"
               :disabled="isLoadingType('update-section')"
               :loading="isLoadingType('update-section')"
               severity="success"
@@ -620,7 +626,8 @@ onMounted(() => {
       <!-- Manual Add Button -->
       <div class="text-right" v-if="showPersonSelect && !showManualAdd">
         <Button
-          label="Add Participant"
+          size="small"
+          label="Add Visitor"
           icon="pi pi-user-plus"
           text
           @click="showManualAdd = true"
@@ -656,12 +663,14 @@ onMounted(() => {
 
         <div class="flex justify-between pt-6">
           <Button
+            size="small"
             label="Back to Select List"
             icon="pi pi-arrow-left"
             text
             @click="showManualAdd = false"
           />
           <Button
+            size="small"
             label="Add Participant"
             icon="pi pi-plus"
             severity="success"
@@ -678,11 +687,13 @@ onMounted(() => {
     <div v-if="!showManualAdd" class="flex justify-end gap-2 pt-6">
       <Button
         label="Cancel"
+        size="small"
         severity="secondary"
         @click="visibleParticipant = false"
       />
       <Button
         label="Save"
+        size="small"
         @click="handleSubmit"
         :disabled="!canSubmit || addVisitorLoading"
         :loading="addVisitorLoading"

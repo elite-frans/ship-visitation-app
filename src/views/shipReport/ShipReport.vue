@@ -3,9 +3,16 @@ import { useShipReport } from "@/composables/shipReport/useShipReport";
 import PrimeDataTable from "@/components/dataTable/PrimeDataTable.vue";
 import { useShipReportStore } from "@/stores/shipReportStore";
 import { useDataTableHandler } from "@/composables/dataTable/useDataTableHandler";
+import DeleteConfirmModal from "@/components/modals/DeleteConfirmModal.vue";
 
 const shipReport = useShipReportStore();
-const { shipReportCol } = useShipReport();
+const {
+  shipReportCol,
+  showDeleteDialog,
+  colActionHandlers,
+  rowToDelete,
+  confirmDelete,
+} = useShipReport(null, shipReport);
 
 const { onPage, onSearch } = useDataTableHandler(shipReport, "fetchReports");
 </script>
@@ -16,15 +23,22 @@ const { onPage, onSearch } = useDataTableHandler(shipReport, "fetchReports");
       <div>
         <PrimeDataTable
           tableName="Ship Visitation Reports"
-          :loading="shipReport.loading ||shipReport.operation.loading"
+          :loading="shipReport.loading || shipReport.operation.loading"
           :rowData="shipReport.data"
           :colData="shipReportCol"
           :total="shipReport.total"
           :perPage="shipReport.perPage"
           :page="shipReport.page"
+          :actionHandlers="colActionHandlers"
           @page="onPage"
         />
       </div>
     </div>
   </div>
+  <DeleteConfirmModal
+    v-model="showDeleteDialog"
+    :recordName="`Report`"
+    title="Delete Report"
+    @confirm="confirmDelete"
+  />
 </template>

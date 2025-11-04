@@ -1,8 +1,16 @@
 import { usePersonStore } from "@/stores/personStore";
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 
 export function usePerson() {
   const personStore = usePersonStore();
+
+  const showEditModal = ref(false);
+  const selectedPerson = ref(null);
+  const showDeleteDialog = ref(false);
+  const personToDelete = ref(null);
+
+  const router = useRouter();
 
   const personCols = [
     {
@@ -213,11 +221,71 @@ export function usePerson() {
       throw error;
     }
   };
+
+  const handleEdit = (row) => {
+    selectedPerson.value = { ...row };
+    showEditModal.value = true;
+  };
+
+  const handleUpdate = async (payload) => {
+    console.log("Updated payload:", payload);
+    const id = payload.id;
+    await personStore.updatePerson(id, payload);
+    showEditModal.value = false;
+  };
+
+  const handleDelete = (row) => {
+    personToDelete.value = row;
+    showDeleteDialog.value = true;
+  };
+
+  const confirmDelete = async () => {
+    if (personToDelete.value?.id) {
+      await personStore.deletePerson(personToDelete.value.id);
+    }
+    showDeleteDialog.value = false;
+  };
+
+  const colActionHandlers = {
+    getItems(row) {
+      return [
+        {
+          label: "Actions",
+          items: [
+            {
+              label: "View Details",
+              icon: "pi pi-eye",
+              command: () =>
+                router.push({ name: "PersonView", params: { id: row.id } }),
+            },
+            {
+              label: "Edit",
+              icon: "pi pi-pencil",
+              command: () => handleEdit(row),
+            },
+            {
+              label: "Delete",
+              icon: "pi pi-trash",
+              command: () => handleDelete(row),
+            },
+          ],
+        },
+      ];
+    },
+  };
+
   return {
     personCols,
     personDatas,
     addPersonInputFields,
     addPerson,
     updatePersonInputFields,
+    showEditModal,
+    selectedPerson,
+    showDeleteDialog,
+    personToDelete,
+    handleUpdate,
+    confirmDelete,
+    colActionHandlers,
   };
 }

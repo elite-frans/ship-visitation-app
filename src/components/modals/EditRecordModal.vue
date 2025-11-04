@@ -5,14 +5,14 @@ import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 
 const props = defineProps({
-  modelValue: Boolean, // for v-model:show
+  modelValue: Boolean,
   fields: {
     type: Array,
     required: true,
   },
   record: {
     type: Object,
-    required: true, // the existing data to edit
+    required: true,
   },
   title: {
     type: String,

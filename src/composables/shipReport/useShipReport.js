@@ -1,9 +1,14 @@
-import { reactive, onMounted, ref, computed } from "vue";
+import { useShipReportStore } from "@/stores/shipReportStore";
+import { reactive, ref, computed } from "vue";
+import { useRouter } from "vue-router";
 
 export function useShipReport(reportId, shipReportStore) {
   const visible = ref(false);
   const selectedSection = ref(null);
   const actionType = ref("add");
+
+  const showDeleteDialog = ref(false);
+  const rowToDelete = ref(null);
 
   const newSection = ref({ title: "", details: "" });
   const newCustomSection = ref({ title: "" });
@@ -13,6 +18,8 @@ export function useShipReport(reportId, shipReportStore) {
 
   const editingSectionCode = ref(null);
   const editableDetails = ref("");
+
+  const router = useRouter();
 
   const viewReportLoading = computed(() =>
     shipReportStore.isLoading("view-report")
@@ -284,6 +291,55 @@ export function useShipReport(reportId, shipReportStore) {
     }
   };
 
+  const handleDelete = (row) => {
+    rowToDelete.value = row;
+    showDeleteDialog.value = true;
+  };
+
+  const confirmDelete = async () => {
+    if (rowToDelete.value?.id) {
+      await shipReportStore.deleteReport(rowToDelete.value.id);
+    }
+    showDeleteDialog.value = false;
+  };
+
+  const colActionHandlers = {
+    getItems(row) {
+      return [
+        {
+          label: "Actions",
+          items: [
+            {
+              label: "View",
+              icon: "pi pi-eye",
+              command: () =>
+                router.push({
+                  name: "ShipReportView",
+                  params: { id: row.id },
+                }),
+            },
+            {
+              label: "View on New Tab",
+              icon: "pi pi-external-link",
+              command: () => {
+                const url = router.resolve({
+                  name: "ShipReportView",
+                  params: { id: row.id },
+                }).href;
+                window.open(url, "_blank");
+              },
+            },
+            {
+              label: "Delete",
+              icon: "pi pi-trash",
+              command: () => handleDelete(row),
+            },
+          ],
+        },
+      ];
+    },
+  };
+
   return {
     addNewSectionInputFields,
     updateSectionDetailsInputFields,
@@ -319,5 +375,12 @@ export function useShipReport(reportId, shipReportStore) {
     viewReportLoading,
     updateSectionDescLoading,
     isLoadingType,
+
+    colActionHandlers,
+    handleDelete,
+    confirmDelete,
+
+    rowToDelete,
+    showDeleteDialog,
   };
 }

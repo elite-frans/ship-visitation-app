@@ -21,6 +21,7 @@ export const PARTICIPANTS_ENDPOINTS = {
 
 export const PERSONS_ENDPOINTS = {
   GET_PERSONS: "/api/spa/persons?",
+  GET_COMPANIES: "/api/spa/persons/companies",
   ADD_PERSON: "/api/spa/persons",
   UPDATE_PERSON: (id) => `/api/spa/persons/${id}`,
   DELETE_PERSON: (id) => `/api/spa/persons/${id}`,

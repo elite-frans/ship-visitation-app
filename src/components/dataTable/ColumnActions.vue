@@ -7,18 +7,18 @@ import { useShipReportStore } from "@/stores/shipReportStore";
 
 const props = defineProps({
   row: { type: Object, required: true },
-  handlers: Object, // 👈 new prop
+  handlers: Object, 
 });
 
 const router = useRouter();
 const menu = ref();
-const shipReportStore = useShipReportStore();
+// const shipReportStore = useShipReportStore();
 
 const toggle = (event) => {
   menu.value.toggle(event);
 };
 
-// Default ShipReport actions fallback
+
 const defaultActions = [
   {
     label: "View",
@@ -40,12 +40,13 @@ const defaultActions = [
   },
 ];
 
-// If parent passes custom handlers, use them
+
 const menuItems = computed(() => {
   if (props.handlers?.getItems) {
     return props.handlers.getItems(props.row);
   }
-  return [{ label: "Actions", items: defaultActions }];
+  // return [{ label: "Actions", items: [] }];
+    return [];
 });
 </script>
 

@@ -1,7 +1,7 @@
 import { useShipReportStore } from "@/stores/shipReportStore";
-import { reactive, ref, watch, computed, nextTick } from "vue";
+import { reactive, ref, watch, computed, nextTick, toRef } from "vue";
 
-export function useShipParticipants(reportId) {
+export function useShipParticipants(reportId, report, type) {
   const shipReportStore = useShipReportStore();
 
   const visibleParticipant = ref(false);
@@ -13,11 +13,11 @@ export function useShipParticipants(reportId) {
 
   const selectedVisitors = ref([]);
 
-  const report = ref({
-    visitors: [],
-  });
+  // const report = ref({
+  //   visitors: [],
+  // });
 
-  const type = "visitors";
+  // const type = "visitors";
 
   const removeAllPartiLoading = computed(() =>
     shipReportStore.isLoading("remove-all-participant")
@@ -247,42 +247,19 @@ export function useShipParticipants(reportId) {
     showRemoveAllDialog.value = false;
   };
 
-  // const openRetainDialog = async () => {
-  //   showRetainDialog.value = true;
-
-  //   await nextTick();
-
-  //   const visitors =
-  //     report?.visitors || report?.participants || report?.[report.type] || [];
-
-  //   if (visitors.length) {
-  //     selectedVisitors.value = visitors.map((v) => v.id);
-  //   }
-  // };
-
   const openRetainDialog = async () => {
     showRetainDialog.value = true;
 
-    await nextTick(); // wait until dialog renders
+    await nextTick();
 
-    // get visitors array safely
-    const visitors =
-      report?.visitors || report?.participants || report?.[type] || [];
+    const visitors = report?.[type] || [];
 
-    // pre-select all visitor IDs after the DOM renders
-    if (visitors.length) {
-      selectedVisitors.value = visitors.map((v) => v.id);
-    }
+    selectedVisitors.value = [...visitors];
   };
 
   const confirmRetainSelected = async () => {
-    const retainedIds = selectedVisitors.value;
-    console.log("retainedIds:", retainedIds);
+    const retainedIds = selectedVisitors.value.map((v) => v.id);
 
-    const visitors = report?.visitors || report?.[type] || [];
-    console.log("visitors:", visitors);
-
-    // Create one participant object per selected ID
     const payload = {
       participants: retainedIds.map((id) => ({
         id,
@@ -290,11 +267,10 @@ export function useShipParticipants(reportId) {
       })),
     };
 
-    console.log("Retain payload:", payload);
-
     await shipReportStore.retainSelectedParticipants(reportId, payload);
+
     showRetainDialog.value = false;
-    selectedVisitors.value = "";
+    selectedVisitors.value = [];
   };
 
   return {
