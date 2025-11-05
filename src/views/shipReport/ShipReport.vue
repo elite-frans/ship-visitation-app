@@ -4,6 +4,7 @@ import PrimeDataTable from "@/components/dataTable/PrimeDataTable.vue";
 import { useShipReportStore } from "@/stores/shipReportStore";
 import { useDataTableHandler } from "@/composables/dataTable/useDataTableHandler";
 import DeleteConfirmModal from "@/components/modals/DeleteConfirmModal.vue";
+import AddRecordPage from "@/components/addRecordPage/AddRecordPage.vue";
 
 const shipReport = useShipReportStore();
 const {
@@ -29,6 +30,10 @@ const { onPage, onSearch } = useDataTableHandler(shipReport, "fetchReports");
           :total="shipReport.total"
           :perPage="shipReport.perPage"
           :page="shipReport.page"
+          :headerButton="{
+            component: AddRecordPage,
+            props: { label: 'Create Report', routeName: 'CreateShipReport' },
+          }"
           :actionHandlers="colActionHandlers"
           @page="onPage"
         />

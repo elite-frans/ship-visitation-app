@@ -594,10 +594,15 @@ onMounted(() => {
         <MultiSelect
           v-model="formData.participant"
           display="chip"
+          :loading="isLoadingType('participant-selection')"
           :options="getOptions({ model: 'participant' })"
           optionLabel="name"
           optionValue="value"
-          placeholder="Select participants"
+          :placeholder="
+            isLoadingType('participant-selection')
+              ? 'Loading...'
+              : 'Select participants'
+          "
           class="w-full"
         >
           <template #option="slotProps">

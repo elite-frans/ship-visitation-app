@@ -1,5 +1,5 @@
 import { useShipReportStore } from "@/stores/shipReportStore";
-import { reactive, ref, watch, computed, nextTick, toRef } from "vue";
+import { reactive, ref, watch, computed, nextTick, onMounted } from "vue";
 
 export function useShipParticipants(reportId, report, type) {
   const shipReportStore = useShipReportStore();
@@ -12,12 +12,6 @@ export function useShipParticipants(reportId, report, type) {
   const showRetainDialog = ref(false);
 
   const selectedVisitors = ref([]);
-
-  // const report = ref({
-  //   visitors: [],
-  // });
-
-  // const type = "visitors";
 
   const removeAllPartiLoading = computed(() =>
     shipReportStore.isLoading("remove-all-participant")
@@ -53,6 +47,23 @@ export function useShipParticipants(reportId, report, type) {
     if (!val) resetForm();
   });
 
+  onMounted(async () => {
+    await shipReportStore.fetchCompanies();
+  });
+
+  watch(
+    () => formData.company,
+    async (companyName) => {
+      if (companyName) {
+        await shipReportStore.fetchParticipantsByCompany(companyName);
+      }
+    }
+  );
+
+  onMounted(async () => {
+    await shipReportStore.fetchCompanies();
+  });
+
   watch(
     () => formData.company,
     (newVal) => {
@@ -69,51 +80,47 @@ export function useShipParticipants(reportId, report, type) {
     }
   );
 
-  const participantList = ref([
-    { name: "John Doe", company: "KRBS", rank: "Master", value: "john_doe" },
-    {
-      name: "Sarah Smith",
-      company: "KRBS",
-      rank: "MSI",
-      value: "sarah_smith",
-    },
-    {
-      name: "Frank Sinatra",
-      company: "Elite",
-      rank: "MSI",
-      value: "frank_sinatra",
-    },
-    {
-      name: "Magnus Carl",
-      company: "Elite",
-      rank: "Master",
-      value: "magnus Carl",
-    },
-  ]);
+  const participantList = ref([]);
 
-  const companies = ref([
-    { name: "KRBS", value: "krbs" },
-    { name: "Elite", value: "elite" },
-  ]);
+  const addManualToList = () => {
+    if (!formData.first_name.trim() || !formData.last_name.trim()) return;
 
-  const filteredParticipants = computed(() => {
-    if (!formData.company) return [];
-    return participantList.value.filter(
-      (p) => p.company.toLowerCase() === formData.company.toLowerCase()
+    const fullName =
+      `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
+    const exists = shipReportStore.participants.find(
+      (p) => p.name.toLowerCase() === fullName.toLowerCase()
     );
-  });
+    if (exists) return;
+
+    const newParticipant = {
+      name: fullName,
+      value: fullName.toLowerCase().replace(/\s+/g, "_"),
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      rank: formData.rank,
+      isNew: true,
+      company: formData.company,
+    };
+
+    shipReportStore.participants.push(newParticipant);
+    formData.participant.push(newParticipant.value);
+
+    formData.first_name = "";
+    formData.last_name = "";
+    formData.rank = "";
+    showManualAdd.value = false;
+  };
 
   const getOptions = (field) => {
     switch (field.model) {
       case "company":
-        return companies.value;
+        return shipReportStore.companies;
       case "participant":
-        return filteredParticipants.value;
+        return shipReportStore.participants;
       default:
         return [];
     }
   };
-
   const canSubmit = computed(() => {
     if (showManualAdd.value) {
       return (
@@ -132,13 +139,14 @@ export function useShipParticipants(reportId, report, type) {
       participants: [],
     };
 
-    // Build payload based on selected participants
+    // Build payload based on selected participants' ids
     formData.participant.forEach((val) => {
-      const participant = participantList.value.find((p) => p.value === val);
+      const participant = shipReportStore.participants.find(
+        (p) => p.value === val
+      );
       if (!participant) return;
 
       const [first, last] = participant.name.split(" ");
-
       payload.participants.push({
         first_name: first,
         last_name: last || "",
@@ -148,8 +156,10 @@ export function useShipParticipants(reportId, report, type) {
       });
     });
 
+    // Send the payload to the backend to add participants
     await shipReportStore.addParticipant(reportId, payload);
 
+    // Reset form data
     formData.company = null;
     formData.participant = [];
     formData.first_name = "";
@@ -171,70 +181,16 @@ export function useShipParticipants(reportId, report, type) {
     visibleParticipant.value = true;
   };
 
-  // const addManualToList = () => {
-  //   if (!formData.first_name.trim() || !formData.last_name.trim()) return;
-
-  //   const fullName =
-  //     `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
-
-  //   const exists = participantList.value.some(
-  //     (p) => p.name.toLowerCase() === fullName.toLowerCase()
+  // const removeManualFromList = (participant) => {
+  //   participantList.value = participantList.value.filter(
+  //     (p) => p.value !== participant.value
   //   );
-  //   if (exists) return;
 
-  //   participantList.value.push({
-  //     name: fullName,
-  //     value: fullName.toLowerCase().replace(/\s+/g, "_"),
-  //     rank: formData.rank,
-  //     isNew: true, // ✅ mark as new
-  //   });
-
-  //   formData.first_name = "";
-  //   formData.last_name = "";
-  //   formData.rank = "";
-
-  //   showManualAdd.value = false;
+  //   // Also deselect if it was already selected
+  //   formData.participant = formData.participant.filter(
+  //     (p) => p.value !== participant.value
+  //   );
   // };
-
-  const addManualToList = () => {
-    if (!formData.first_name.trim() || !formData.last_name.trim()) return;
-    if (!formData.company) return; // company must be selected
-
-    const fullName =
-      `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
-
-    const exists = participantList.value.some(
-      (p) =>
-        p.name.toLowerCase() === fullName.toLowerCase() &&
-        p.company.toLowerCase() === formData.company.toLowerCase()
-    );
-    if (exists) return;
-
-    // ✅ Automatically tie this new participant to the selected company
-    participantList.value.push({
-      name: fullName,
-      value: fullName.toLowerCase().replace(/\s+/g, "_"),
-      rank: formData.rank,
-      company: formData.company,
-      isNew: true,
-    });
-
-    formData.first_name = "";
-    formData.last_name = "";
-    formData.rank = "";
-    showManualAdd.value = false;
-  };
-
-  const removeManualFromList = (participant) => {
-    participantList.value = participantList.value.filter(
-      (p) => p.value !== participant.value
-    );
-
-    // Also deselect if it was already selected
-    formData.participant = formData.participant.filter(
-      (p) => p.value !== participant.value
-    );
-  };
 
   // const openRemoveAllDialog = () => {
   //   showRemoveAllDialog.value = true;
@@ -284,7 +240,7 @@ export function useShipParticipants(reportId, report, type) {
     canSubmit,
     shipReportStore,
     addManualToList,
-    removeManualFromList,
+    // removeManualFromList,
     resetForm,
     showRemoveAllDialog,
     confirmRemoveAll,

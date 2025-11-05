@@ -21,6 +21,8 @@ export const PARTICIPANTS_ENDPOINTS = {
 
 export const PERSONS_ENDPOINTS = {
   GET_PERSONS: "/api/spa/persons?",
+  GET_PERSON_COMPANY: (companyName) =>
+    `/api/spa/persons?filter[company]=${companyName}`,
   GET_COMPANIES: "/api/spa/persons/companies",
   ADD_PERSON: "/api/spa/persons",
   UPDATE_PERSON: (id) => `/api/spa/persons/${id}`,

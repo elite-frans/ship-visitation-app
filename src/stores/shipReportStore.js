@@ -16,7 +16,8 @@ export const useShipReportStore = defineStore("shipReportStore", {
     message: null,
     error: null,
     data: [],
-    companiesData: [],
+    companies: [],
+    participants: [],
     report: null,
 
     perPage: 15,
@@ -58,16 +59,75 @@ export const useShipReportStore = defineStore("shipReportStore", {
       }
     },
     async fetchCompanies() {
+      if (this.companiesLoaded && this.companies.length > 0) {
+        return this.companies;
+      }
       this.loading = true;
       try {
         const { data: json } = await api.get(PERSONS_ENDPOINTS.GET_COMPANIES);
 
-        this.companiesData = json;
-      } catch (error) {
+        this.companies = (json.data ?? []).map((item) => ({
+          name: item,
+          value: item,
+        }));
+
+        this.companiesLoaded = true;
+        return this.companies;
+      } catch (err) {
         this.error =
           err?.response?.data || err.message || "Something went wrong.";
       } finally {
         this.loading = false;
+      }
+    },
+
+    async fetchParticipantsByCompany(companyName) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "participant-selection",
+      };
+      try {
+        const url = PERSONS_ENDPOINTS.GET_PERSON_COMPANY(companyName);
+        const { data: json } = await api.get(url, {
+          params: { format: "flat" },
+        });
+
+        // Mapping the data
+        this.participants = (json.data ?? []).map((item) => ({
+          name: `${item.first_name} ${item.last_name}`, // Display Name
+          value: item.id, // Participant's ID is used as the value
+          ...item, // Spread the other participant fields like rank, first_name, last_name, etc.
+        }));
+
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "",
+          type: "participant-selection",
+        };
+        return this.participants;
+      } catch (err) {
+        this.error =
+          err?.response?.data || err.message || "Something went wrong.";
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "",
+          type: "participant-selection",
+        };
+      } finally {
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "",
+          type: "participant-selection",
+        };
       }
     },
     async viewReport(id, filters) {
