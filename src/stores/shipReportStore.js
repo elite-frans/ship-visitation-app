@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { api } from "@/service/http";
 import {
+  OPEN_APIS,
   PARTICIPANTS_ENDPOINTS,
   PERSONS_ENDPOINTS,
   REPORT_ENDPOINTS,
@@ -18,6 +19,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
     data: [],
     companies: [],
     participants: [],
+    apiKeys: {},
     report: null,
 
     perPage: 15,
@@ -81,6 +83,22 @@ export const useShipReportStore = defineStore("shipReportStore", {
       }
     },
 
+    async fetchOpenApiKeys() {
+      this.operation.loading = true;
+      try {
+        const { data } = await api.get(OPEN_APIS.GET_API_KEYS);
+        this.operation.loading = false;
+
+        this.apiKeys = data?.data;
+
+        return this.apiKeys;
+      } catch (err) {
+        this.operation.isError = true;
+        this.operation.message = err?.response?.data || err.message;
+      } finally {
+        this.operation.loading = false;
+      }
+    },
     async fetchParticipantsByCompany(companyName) {
       this.operation = {
         loading: true,
@@ -95,11 +113,10 @@ export const useShipReportStore = defineStore("shipReportStore", {
           params: { format: "flat" },
         });
 
-        // Mapping the data
         this.participants = (json.data ?? []).map((item) => ({
-          name: `${item.first_name} ${item.last_name}`, // Display Name
-          value: item.id, // Participant's ID is used as the value
-          ...item, // Spread the other participant fields like rank, first_name, last_name, etc.
+          name: `${item.first_name} ${item.last_name}`,
+          value: item.id,
+          ...item,
         }));
 
         this.operation = {

@@ -47,10 +47,6 @@ export function useShipParticipants(reportId, report, type) {
     if (!val) resetForm();
   });
 
-  onMounted(async () => {
-    await shipReportStore.fetchCompanies();
-  });
-
   watch(
     () => formData.company,
     async (companyName) => {

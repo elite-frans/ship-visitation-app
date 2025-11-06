@@ -29,3 +29,7 @@ export const PERSONS_ENDPOINTS = {
   DELETE_PERSON: (id) => `/api/spa/persons/${id}`,
   VIEW_PERSON: (id) => `/api/spa/persons/${id}`,
 };
+
+export const OPEN_APIS = {
+  GET_API_KEYS: "api/spa/open-apis/keys",
+};
