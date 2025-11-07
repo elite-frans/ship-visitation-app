@@ -1,5 +1,7 @@
 export const REPORT_ENDPOINTS = {
   GET_REPORTS: "/api/spa/reports?",
+  CREATE_REPORTS: "/api/spa/reports",
+  UPDATE_REPORT: (id) => `/api/spa/reports/${id}`,
   VIEW_REPORT: (id) => `/api/spa/reports/${id}`,
   DELETE_REPORT: (id) => `/api/spa/reports/${id}`,
 };
@@ -28,6 +30,10 @@ export const PERSONS_ENDPOINTS = {
   UPDATE_PERSON: (id) => `/api/spa/persons/${id}`,
   DELETE_PERSON: (id) => `/api/spa/persons/${id}`,
   VIEW_PERSON: (id) => `/api/spa/persons/${id}`,
+};
+
+export const THIRD_PARTY_APIS = {
+  GET_ONBOARD_CREWS: "api/spa/get-onboard-crews",
 };
 
 export const OPEN_APIS = {

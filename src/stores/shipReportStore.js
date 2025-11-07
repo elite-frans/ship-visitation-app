@@ -6,6 +6,7 @@ import {
   PERSONS_ENDPOINTS,
   REPORT_ENDPOINTS,
   SECTIONS_MANAGEMENT_ENDPOINTS,
+  THIRD_PARTY_APIS,
 } from "@/apis/endpoints";
 
 export const useShipReportStore = defineStore("shipReportStore", {
@@ -20,6 +21,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
     companies: [],
     participants: [],
     apiKeys: {},
+    onBoardCrews: [],
     report: null,
 
     perPage: 15,
@@ -84,10 +86,22 @@ export const useShipReportStore = defineStore("shipReportStore", {
     },
 
     async fetchOpenApiKeys() {
-      this.operation.loading = true;
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "fetch-api-keys",
+      };
       try {
         const { data } = await api.get(OPEN_APIS.GET_API_KEYS);
-        this.operation.loading = false;
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "fetch-api-keys",
+        };
 
         this.apiKeys = data?.data;
 
@@ -96,7 +110,52 @@ export const useShipReportStore = defineStore("shipReportStore", {
         this.operation.isError = true;
         this.operation.message = err?.response?.data || err.message;
       } finally {
-        this.operation.loading = false;
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "fetch-api-keys",
+        };
+      }
+    },
+
+    async fetchOnBoardCrews(vesselName) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "fetch-onboard-crew",
+      };
+      try {
+        const { data } = await api.get(THIRD_PARTY_APIS.GET_ONBOARD_CREWS, {
+          params: {
+            vessel_name: vesselName,
+          },
+        });
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "fetch-onboard-crew",
+        };
+
+        this.onBoardCrews = data?.data;
+
+        return this.onBoardCrews;
+      } catch (err) {
+        this.operation.isError = true;
+        this.operation.message = err?.response?.data || err.message;
+      } finally {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "fetch-onboard-crew",
+        };
       }
     },
     async fetchParticipantsByCompany(companyName) {
@@ -147,6 +206,92 @@ export const useShipReportStore = defineStore("shipReportStore", {
         };
       }
     },
+
+    async createReport(payload) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "create-report",
+      };
+      try {
+        const { data: json } = await api.post(
+          REPORT_ENDPOINTS.CREATE_REPORTS,
+          payload
+        );
+
+        this.report = json ?? [];
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "Successfully created report.",
+          type: "created-report",
+        };
+      } catch (error) {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message:
+            err?.response?.data || err.message || "Something went wrong.",
+          type: "create-report",
+        };
+      } finally {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "create-report",
+        };
+      }
+    },
+
+    async updateReport(payload, id) {
+      this.operation = {
+        loading: true,
+        success: false,
+        isError: false,
+        message: "",
+        type: "update-report",
+      };
+      try {
+        const { data: json } = await api.put(
+          REPORT_ENDPOINTS.UPDATE_REPORT(id),
+          payload
+        );
+
+        this.report = json ?? [];
+        this.operation = {
+          loading: false,
+          success: true,
+          isError: false,
+          message: "Successfully created report.",
+          type: "update-report",
+        };
+        await this.viewReport(id);
+      } catch (error) {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message:
+            err?.response?.data || err.message || "Something went wrong.",
+          type: "update-report",
+        };
+      } finally {
+        this.operation = {
+          loading: false,
+          success: false,
+          isError: false,
+          message: "",
+          type: "update-report",
+        };
+      }
+    },
+
     async viewReport(id, filters) {
       this.operation = {
         loading: true,

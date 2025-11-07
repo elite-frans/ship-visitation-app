@@ -1,16 +1,38 @@
 <script setup>
-import { useCreateShipReport } from "@/composables/shipReport/useCreateShipReport";
+import ShipReportVisitor from "@/components/shipReport/ShipReportVisitor.vue";
+import { useEditShipReport } from "@/composables/shipReport/useEditShipReport";
+import { useShipParticipants } from "@/composables/shipReport/useShipParticipants";
+import { useShipReport } from "@/composables/shipReport/useShipReport";
 import { useShipReportStore } from "@/stores/shipReportStore";
 import { dateFormatter } from "@/utils/dateFormatter";
 import { dateFormatterYmd } from "@/utils/dateFormatterYmd";
 import { Dialog } from "primevue";
 import { onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 const shipReportStore = useShipReportStore();
+const router = useRouter();
+const route = useRoute();
+const routeId = route.params.id;
 
 const {
+  report,
   formData,
+  inputFields,
+  preDefineSections,
+  orderedFields,
+
+  handleUpdateReport,
+  vesselInfoFields,
+  isLoadingType,
+} = useEditShipReport();
+
+const {
+  viewReportLoading,
+  formData: formDataVisitor,
+  addNewSectionInputFields,
+  updateSectionDetailsInputFields,
+  addCustomSectionInputFields,
   visible,
   selectedSection,
   actionType,
@@ -18,35 +40,38 @@ const {
   newCustomSection,
   editChildren,
   editingChildCode,
-  editableChildDetails,
-  editingSectionCode,
-  editableDetails,
-  inputFields,
-  preDefineSections,
-  orderedFields,
-  getHeaderModal,
-  addNewSectionInputFields,
-  startChildEditing,
   cancelChildEditing,
+  editableChildDetails,
+  startChildEditing,
   updateChildDescription,
   deleteSection,
+  editingSectionCode,
+  editableDetails,
   startEditing,
   cancelEditing,
   updateDescription,
   openAddSectionModal,
   AddCustomSectionModal,
   openUpdateSectionModal,
-  submitSection,
+  getHeaderModal,
   getButtonName,
-  handleRemove,
-  addCustomSectionInputFields,
-  updateSectionDetailsInputFields,
-  handleSubmitReport,
-  vesselInfoFields,
-  isLoadingType,
-} = useCreateShipReport();
+  submitSection,
+  updateSectionDescLoading,
+} = useShipReport(routeId, shipReportStore);
 
-const router = useRouter();
+const {
+  formData: formParticipantData,
+  getOptions,
+  handleSubmit,
+  openAddDialog,
+  showPersonSelect,
+  showManualAdd,
+  visibleParticipant,
+  canSubmit,
+  addManualToList,
+  removeManualFromList,
+  addVisitorLoading,
+} = useShipParticipants(routeId);
 
 const visitDate = ref(null);
 const reporter = ref();
@@ -76,7 +101,7 @@ const goBack = () => {
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <h1 class="text-lg font-bold uppercase">
-            Vessel Visitation Information:
+            Edit Visitation Information:
           </h1>
           <Button
             label="Back"
@@ -87,79 +112,102 @@ const goBack = () => {
             @click="goBack"
           />
         </div>
-        <Divider />
       </div>
 
-      <!-- Input field Forms -->
-      <form class="w-full pt-10">
-        <div class="space-y-6">
-          <div
-            class="grid grid-cols-1 space-y-1 mb-2 md:grid-cols-2 md:items-center md:mb-0"
-            v-for="(item, index) in vesselInfoFields"
-          >
-            <label class="font-medium text-neutral-500"
-              >{{ item.label }}:
-            </label>
-            <DatePicker
-              v-if="item.type === 'datePicker'"
-              v-model="formData[item.model]"
-              class="w-full"
-              iconDisplay="input"
-              :manualInput="false"
-              :placeholder="item.placeholder"
-              :required="item.required ?? false"
-              fluid
-              showIcon
-            />
-            <DatePicker
-              v-if="item.type === 'datePickerRange'"
-              v-model="formData[item.model]"
-              selectionMode="range"
-              :manualInput="false"
-              showIcon
-              iconDisplay="input"
-              :placeholder="item.placeholder"
-              :required="item.required ?? false"
-              fluid
-            />
-            <Select
-              v-if="item.type === 'select'"
-              v-model="formData[item.model]"
-              :options="item?.options || []"
-              :optionLabel="item?.option_label || 'label'"
-              :optionValue="item?.option_value || 'value'"
-              :placeholder="item.placeholder"
-              class="w-full"
-              :required="item.required ?? false"
-              checkmark
-              filter
-            />
-            <InputText
-              v-if="item.type === 'text'"
-              type="text"
-              v-model="formData[item.model]"
-              :placeholder="item.placeholder"
-            />
+      <div
+        v-if="isLoadingType('view-report')"
+        class="flex flex-col w-full space-y-6"
+      >
+        <!-- Vessel info skeletons -->
+        <div
+          v-for="n in 3"
+          :key="'vessel-skeleton-' + n"
+          class="grid grid-cols-1 mb-2 space-y-1 md:grid-cols-2 md:items-center"
+        >
+          <div class="font-medium text-neutral-300">
+            <Skeleton width="40%" height="1rem" />
           </div>
+          <Skeleton height="2.5rem" borderRadius="8px" />
+        </div>
 
-          <div class="flex justify-end pt-4">
-            <Button
-              :loading="isLoadingType('create-report')"
-              label="Submit"
-              size="small"
-              @click="handleSubmitReport"
-            />
+        <!-- Group section skeletons -->
+        <div v-for="n in 6" :key="'section-skeleton-' + n">
+          <div
+            class="grid grid-cols-1 mb-2 space-y-1 md:grid-cols-2 md:items-center"
+          >
+            <div class="font-medium text-neutral-300">
+              <Skeleton width="40%" height="1rem" />
+            </div>
+            <Skeleton height="2.5rem" borderRadius="8px" />
           </div>
         </div>
 
-        <Tabs class="pt-14" value="0">
+        <!-- Save button skeleton -->
+        <div class="flex justify-end pt-4">
+          <Skeleton width="8rem" height="2.2rem" borderRadius="8px" />
+        </div>
+      </div>
+
+      <!-- Input field Forms -->
+      <form v-else class="w-full">
+        <Tabs class="pt-6" value="0">
           <TabList>
             <Tab value="0">Visitation Details</Tab>
-            <Tab value="1">Sections</Tab>
+            <Tab value="1">Participants</Tab>
+            <Tab value="2">Sections</Tab>
           </TabList>
           <TabPanels>
             <TabPanel value="0">
-              <div class="flex flex-col w-full space-y-6 pt-10">
+              <div class="flex flex-col w-full space-y-6">
+                <div
+                  class="grid grid-cols-1 space-y-1 mb-2 md:grid-cols-2 md:items-center"
+                  v-for="(item, index) in vesselInfoFields"
+                >
+                  <label class="font-medium text-neutral-500"
+                    >{{ item.label }}:
+                  </label>
+                  <DatePicker
+                    v-if="item.type === 'datePicker'"
+                    v-model="formData[item.model]"
+                    class="w-full"
+                    iconDisplay="input"
+                    :manualInput="false"
+                    :placeholder="item.placeholder"
+                    :required="item.required ?? false"
+                    fluid
+                    showIcon
+                  />
+                  <DatePicker
+                    v-if="item.type === 'datePickerRange'"
+                    v-model="formData[item.model]"
+                    selectionMode="range"
+                    :manualInput="false"
+                    showIcon
+                    iconDisplay="input"
+                    :placeholder="item.placeholder"
+                    :required="item.required ?? false"
+                    fluid
+                  />
+                  <Select
+                    v-if="item.type === 'select'"
+                    v-model="formData[item.model]"
+                    :options="item?.options || []"
+                    :optionLabel="item?.option_label || 'label'"
+                    :optionValue="item?.option_value || 'value'"
+                    :placeholder="item.placeholder"
+                    class="w-full"
+                    :loading="isLoadingType('fetch-api-keys')"
+                    :required="item.required ?? false"
+                    checkmark
+                    filter
+                  />
+                  <InputText
+                    v-if="item.type === 'text'"
+                    type="text"
+                    v-model="formData[item.model]"
+                    :placeholder="item.placeholder"
+                  />
+                </div>
                 <div
                   v-for="(item, index) in orderedFields"
                   :key="item.key ?? `group-${index}`"
@@ -236,6 +284,7 @@ const goBack = () => {
                         :optionValue="item?.option_value || 'raw'"
                         :placeholder="item.placeholder"
                         class="w-full"
+                        :loading="isLoadingType('fetch-onboard-crew')"
                         :required="item.required ?? false"
                         filter
                         multiple
@@ -248,14 +297,59 @@ const goBack = () => {
                     </div>
                   </template>
                 </div>
+                <div class="flex justify-end pt-4">
+                  <Button
+                    :loading="isLoadingType('update-report')"
+                    label="Save All Changes"
+                    size="small"
+                    @click="handleUpdateReport(routeId)"
+                  />
+                </div>
               </div>
             </TabPanel>
             <TabPanel value="1">
+              <div class="space-y-4">
+                <div class="flex justify-end">
+                  <Button
+                    label="Add Visitor"
+                    size="small"
+                    icon="pi pi-user"
+                    @click="visibleParticipant = true"
+                  />
+                </div>
+                <Tabs value="0">
+                  <TabList>
+                    <Tab value="0">Visitors</Tab>
+                    <Tab value="1">Interviewee</Tab>
+                  </TabList>
+                  <TabPanels>
+                    <TabPanel value="0">
+                      <ShipReportVisitor
+                        :reportId="routeId"
+                        :report="report"
+                        type="Visitor"
+                      />
+                    </TabPanel>
+                    <TabPanel value="1">
+                      <ShipReportVisitor
+                        :reportId="routeId"
+                        :report="report"
+                        type="Interviewee"
+                      />
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
+              </div>
+            </TabPanel>
+            <TabPanel value="2">
               <!-- //* SECTIONS FIELDS -->
               <div class="pt-10">
-                <div class="w-full space-y-8 text-sm">
+                <div
+                  class="w-full space-y-8 text-sm"
+                  v-if="report?.sections?.length"
+                >
                   <div
-                    v-for="(section, sIndex) in preDefineSections"
+                    v-for="(section, sIndex) in report.sections"
                     :key="sIndex"
                     class="w-full border-b pb-4"
                   >
@@ -270,34 +364,69 @@ const goBack = () => {
                           class="space-x-3"
                         >
                           <Button
+                            :disabled="shipReportStore.operation.loading"
                             icon="pi pi-pencil"
                             variant="outlined"
                             severity="secondary"
-                            aria-label="Edit details"
+                            aria-label="Edit Details"
                             size="small"
                             @click="openUpdateSectionModal(section)"
                           />
                           <Button
+                            :disabled="shipReportStore.operation.loading"
                             icon="pi pi-trash"
                             variant="outlined"
                             severity="danger"
-                            aria-label="Delete details"
+                            aria-label="Delete Details"
                             size="small"
-                            @click="deleteSection(section)"
+                            @click="deleteSection(section.id)"
                           />
                         </div>
                       </div>
                       <div class="gap-y-2 mt-1">
-                        <Textarea
-                          v-model="section.details"
-                          rows="2"
-                          size="small"
-                          :placeholder="
-                            !section.details && 'Provide basic details'
-                          "
-                          class="w-full text-sm"
-                          autoResize
-                        />
+                        <!-- When editing -->
+                        <div
+                          v-if="editingSectionCode === section.section_code"
+                          class="space-y-2"
+                        >
+                          <Textarea
+                            v-model="editableDetails"
+                            rows="4"
+                            class="w-full text-sm"
+                            autoResize
+                          />
+                          <div class="flex gap-2">
+                            <Button
+                              label="Cancel"
+                              size="small"
+                              severity="secondary"
+                              @click="cancelEditing"
+                            />
+                            <Button
+                              label="Update"
+                              size="small"
+                              severity="primary"
+                              :loading="updateSectionDescLoading"
+                              :disabled="updateSectionDescLoading"
+                              @click="updateDescription(section)"
+                            />
+                          </div>
+                        </div>
+
+                        <!-- When not editing -->
+                        <div v-else class="flex items-center gap-x-3">
+                          <p class="text-neutral-600">
+                            {{ section.details || "No details yet." }}
+                          </p>
+                          <Button
+                            v-if="section.category_key !== 'custom'"
+                            icon="pi pi-pen-to-square"
+                            size="small"
+                            severity="secondary"
+                            aria-label="Edit"
+                            @click="startEditing(section)"
+                          />
+                        </div>
                       </div>
                     </div>
                     <!-- Child Sections -->
@@ -339,6 +468,8 @@ const goBack = () => {
                                 label="Update"
                                 size="small"
                                 severity="primary"
+                                :loading="updateSectionDescLoading"
+                                :disabled="updateSectionDescLoading"
                                 @click="updateChildDescription(section, child)"
                               />
                             </div>
@@ -357,17 +488,20 @@ const goBack = () => {
                         >
                           <Button
                             style="color: #0ea5e9"
+                            :disabled="shipReportStore.operation.loading"
                             variant="link"
-                            label="Edit details"
+                            label="Edit Details"
                             size="small"
                             @click="startChildEditing(child)"
                           />
                           <Button
-                            v-if="child.category_key === 'custom_child'"
+                            v-if="section.category_key === 'custom'"
+                            :disabled="shipReportStore.operation.loading"
                             variant="link"
+                            severity="danger"
                             label="Delete"
                             size="small"
-                            @click="handleRemove(section, child)"
+                            @click="deleteSection(child.id)"
                           />
                         </div>
                       </div>
@@ -379,18 +513,22 @@ const goBack = () => {
                     </div>
                     <div class="mt-3">
                       <Button
+                        :disabled="shipReportStore.operation.loading"
                         size="small"
-                        label="Add section"
+                        label="Add Details"
                         variant="outlined"
                         @click="openAddSectionModal(section)"
                       />
                     </div>
                   </div>
                 </div>
+                <p v-else>No section found.</p>
                 <div class="w-full flex justify-center m-0 pt-6">
                   <Button
                     label="Add New Section"
                     size="small"
+                    :loading="isLoadingType('add-custom-section')"
+                    :disabled="isLoadingType('add-custom-section')"
                     @click="AddCustomSectionModal(section)"
                   />
                 </div>
@@ -448,6 +586,11 @@ const goBack = () => {
             severity="primary"
             size="small"
             @click="submitSection"
+            :loading="isLoadingType('add-section-detail')"
+            :disabled="
+              (actionType === 'add' && !newSection.title.trim()) ||
+              isLoadingType('add-section-detail')
+            "
           />
         </div>
       </template>
@@ -489,7 +632,13 @@ const goBack = () => {
             :label="getButtonName(actionType)"
             severity="primary"
             size="small"
+            :loading="isLoadingType('add-custom-section')"
             @click="submitSection"
+            :disabled="
+              (actionType === 'addCustomSection' &&
+                !newCustomSection.title.trim()) ||
+              isLoadingType('add-custom-section')
+            "
           />
         </div>
       </template>
@@ -535,11 +684,161 @@ const goBack = () => {
               type="button"
               label="Update"
               size="small"
+              :disabled="isLoadingType('update-section')"
+              :loading="isLoadingType('update-section')"
+              severity="success"
               @click="submitSection"
             />
           </div>
         </div>
       </template>
+    </div>
+  </Dialog>
+
+  <!-- //* PARTICIPANT DIALOG -->
+  <Dialog
+    v-model:visible="visibleParticipant"
+    modal
+    header="Add New Visitor"
+    :style="{ width: '30rem' }"
+    @update:visible="
+      (val) => {
+        if (!val) resetForm();
+      }
+    "
+  >
+    <div class="space-y-4">
+      <!-- Company -->
+      <div>
+        <label class="font-semibold">Company</label>
+        <Select
+          v-model="formParticipantData.company"
+          :options="getOptions({ model: 'company' })"
+          optionLabel="name"
+          optionValue="value"
+          placeholder="Select company"
+          class="w-full"
+        />
+      </div>
+
+      <!-- Participants -->
+      <div v-if="showPersonSelect && !showManualAdd">
+        <label class="font-semibold">Participants</label>
+
+        <!-- Custom option template to show "New Added" -->
+        <MultiSelect
+          v-model="formParticipantData.participant"
+          display="chip"
+          :loading="isLoadingType('participant-selection')"
+          :options="getOptions({ model: 'participant' })"
+          optionLabel="name"
+          optionValue="value"
+          :placeholder="
+            isLoadingType('participant-selection')
+              ? 'Loading...'
+              : 'Select participants'
+          "
+          class="w-full"
+        >
+          <template #option="slotProps">
+            <div class="flex items-center justify-between w-full">
+              <span>{{ slotProps.option.name }}</span>
+              <div class="flex items-center">
+                <Tag
+                  v-if="slotProps.option.isNew"
+                  severity="success"
+                  value="New Added"
+                />
+                <!-- <Button
+                  v-if="slotProps.option.isNew"
+                  icon="pi pi-trash"
+                  text
+                  rounded
+                  class="ml-2"
+                  @click.stop="removeManualFromList(slotProps.option)"
+                /> -->
+              </div>
+            </div>
+          </template>
+        </MultiSelect>
+      </div>
+
+      <!-- Manual Add Button -->
+      <div class="text-right" v-if="showPersonSelect && !showManualAdd">
+        <Button
+          size="small"
+          label="Add Visitor"
+          icon="pi pi-user-plus"
+          text
+          @click="showManualAdd = true"
+        />
+      </div>
+
+      <!-- Manual Add Fields -->
+      <div v-if="showManualAdd" class="space-y-2">
+        <div>
+          <label class="font-semibold">Last Name</label>
+          <InputText
+            v-model="formParticipantData.last_name"
+            placeholder="Enter last name"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="font-semibold">First Name</label>
+          <InputText
+            v-model="formParticipantData.first_name"
+            placeholder="Enter first name"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="font-semibold">Rank</label>
+          <InputText
+            v-model="formParticipantData.rank"
+            placeholder="Enter rank"
+            class="w-full"
+          />
+        </div>
+
+        <div class="flex justify-between pt-6">
+          <Button
+            size="small"
+            label="Back to Select List"
+            icon="pi pi-arrow-left"
+            text
+            @click="showManualAdd = false"
+          />
+          <Button
+            size="small"
+            label="Add Participant"
+            icon="pi pi-plus"
+            severity="success"
+            @click="addManualToList"
+            :disabled="
+              !formParticipantData.first_name.trim() ||
+              !formParticipantData.last_name.trim()
+            "
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Buttons -->
+    <div v-if="!showManualAdd" class="flex justify-end gap-2 pt-6">
+      <Button
+        label="Cancel"
+        size="small"
+        severity="secondary"
+        @click="visibleParticipant = false"
+      />
+      <Button
+        label="Save"
+        size="small"
+        @click="handleSubmit"
+        :disabled="!canSubmit || addVisitorLoading"
+        :loading="addVisitorLoading"
+      />
     </div>
   </Dialog>
 </template>

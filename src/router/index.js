@@ -23,7 +23,12 @@ const router = createRouter({
         {
           path: "ship-report-view/:id",
           name: "ShipReportView",
-          component: () => import("@/views/shipReport/ShipReportView.vue"),
+          component: () => import("@/views/shipReport/ViewShipReport.vue"),
+        },
+        {
+          path: "ship-report-edit/:id",
+          name: "EditShipReport",
+          component: () => import("@/views/shipReport/EditShipReport.vue"),
         },
         {
           path: "ship-report/create-report",

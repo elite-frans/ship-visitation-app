@@ -1,20 +1,34 @@
 import { useShipReportStore } from "@/stores/shipReportStore";
 import { dateFormatterYmd } from "@/utils/dateFormatterYmd";
+import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 
-export function useCreateShipReport() {
+export function useEditShipReport() {
   const formData = reactive({
     user_reporter: null,
     external_vessel_id: null,
     visitation_port_id: null,
     visitation_country_id: "a9b6c2e7-3eab-4a4b-9f0d-86b7e3aefc11",
+    last_visitation_date: null,
     last_visitation_port_id: null,
     last_psc_port_id: null,
     port_last_psc_inspection: null,
     last_icbt_port_id: null,
+    last_icbt_date: null,
+    date_visitation: null,
+    last_psc_date: null,
+    visitation_port_id: null,
+    last_psc_result_deficiencies: null,
   });
 
+  let originalFormData = {};
+
+  const dateFormatterYmd = (d) =>
+    d instanceof Date ? d.toISOString().split("T")[0] : d;
+
   const shipReportStore = useShipReportStore();
+  const { report } = storeToRefs(shipReportStore);
 
   //* States for Section inputfields:
   const visible = ref(false);
@@ -23,6 +37,7 @@ export function useCreateShipReport() {
 
   const showDeleteDialog = ref(false);
   const rowToDelete = ref(null);
+  const route = useRoute();
 
   const newSection = ref({ title: "", details: "" });
   const newCustomSection = ref({ title: "" });
@@ -68,14 +83,6 @@ export function useCreateShipReport() {
       label: "Visitation End Date",
       type: "datePicker",
       placeholder: "Selects end date",
-      required: true,
-    },
-    {
-      key: "user_reporter",
-      model: "user_reporter",
-      label: "User Reporter",
-      type: "text",
-      placeholder: "Enter user reporter",
       required: true,
     },
     {
@@ -279,6 +286,44 @@ export function useCreateShipReport() {
     },
   ]);
 
+  const populateForm = (data) => {
+    const value = data?.value || data || {};
+
+    formData.external_vessel_id = value.vessel_id || null;
+    formData.visitation_start_date = value.visitation_start_date
+      ? new Date(value.visitation_start_date)
+      : null;
+    formData.visitation_end_date = value.visitation_end_date
+      ? new Date(value.visitation_end_date)
+      : null;
+    formData.date_visitation = value.date_visitation;
+    formData.visitation_port_id = value.visitation_port_id;
+    formData.last_visitation_port_id = value.last_visitation_port_id;
+    formData.visitation_country_id = value.visitation_country_id;
+    formData.last_visitation_date = value.last_visitation_date
+      ? new Date(value.last_visitation_date)
+      : null;
+    formData.last_icbt_date = value.last_icbt_date
+      ? new Date(value.last_icbt_date)
+      : null;
+    formData.last_icbt_port_id = value.last_icbt_port_id;
+    formData.last_icbt_result = value.last_icbt_result;
+    formData.last_psc_date = value.last_psc_date
+      ? new Date(value.last_psc_date)
+      : null;
+    formData.last_psc_port_id = value.last_psc_port_id;
+    formData.last_psc_result = value.last_psc_result;
+    formData.last_psc_result_deficiencies = value.last_psc_result_deficiencies;
+    formData.last_docking_date = value.last_docking_date
+      ? new Date(value.last_docking_date)
+      : null;
+    formData.last_docking_place = value.last_docking_place;
+    formData.next_docking_place = value.next_docking_place;
+
+    // Keep a snapshot of the original values
+    originalFormData = JSON.parse(JSON.stringify(formData));
+  };
+
   watch(
     () => formData.external_vessel_id,
     async (newVesselId) => {
@@ -327,6 +372,17 @@ export function useCreateShipReport() {
 
     vesselInfoFields.find((f) => f.key === "external_vessel_id").options =
       vessels;
+  });
+
+  onMounted(async () => {
+    await shipReportStore.fetchOpenApiKeys();
+    const routeId = route.params.id;
+    await shipReportStore.viewReport(routeId);
+    populateForm(report.value);
+  });
+
+  watch(report, (newVal) => {
+    if (newVal) populateForm(newVal);
   });
 
   const preDefineSections = reactive([
@@ -782,75 +838,38 @@ export function useCreateShipReport() {
     }
   };
 
-  const flattenSections = (sections) => {
-    const result = [];
-    sections.forEach((section) => {
-      // push parent
-      result.push({
-        section_code: section.section_code,
-        details: section.details || "",
-        title: section.title || "",
-      });
+  const handleUpdateReport = async (routeId) => {
+    const changedPayload = {};
 
-      // push children
-      if (section.children?.length) {
-        section.children.forEach((child) => {
-          result.push({
-            section_code: child.section_code,
-            details: child.details || "",
-            title: child.title || "",
-          });
-        });
+    for (const [key, value] of Object.entries(formData)) {
+      const original = originalFormData[key];
+
+      const formattedValue =
+        value instanceof Date ? dateFormatterYmd(value) : value;
+      const formattedOriginal =
+        original instanceof Date ? dateFormatterYmd(original) : original;
+
+      // compare (for primitive and date values)
+      if (formattedValue !== formattedOriginal) {
+        changedPayload[key] = formattedValue;
       }
-    });
-    return result;
-  };
+    }
 
-  const flattenParticipants = (
-    selectedParticipants = [],
-    defaultRoles = ["visitor"]
-  ) => {
-    return selectedParticipants.map((crew) => {
-      const [last_name, first_name] = (crew.full_name || "").split(", ");
-      return {
-        first_name: first_name?.trim() || "",
-        last_name: last_name?.trim() || "",
-        rank: crew.rank_name || "",
-        company: crew.manning || "",
-        roles: defaultRoles,
-      };
-    });
-  };
+    // Always include the vessel id if required by backend
+    changedPayload.external_vessel_id = formData.external_vessel_id;
 
-  const handleSubmitReport = async () => {
-    const formattedFormData = Object.entries(formData).reduce(
-      (acc, [key, value]) => {
-        if (value instanceof Date) {
-          acc[key] = dateFormatterYmd(value);
-        } else {
-          acc[key] = value;
-        }
-        return acc;
-      },
-      {}
-    );
+    console.log("🟩 Changed payload:", changedPayload);
 
-    const selectedParticipants = Array.isArray(formData.participants)
-      ? formData.participants
-      : [formData.participants];
+    if (Object.keys(changedPayload).length === 0) {
+      console.log("No changes detected, skipping update.");
+      return;
+    }
 
-    const payload = {
-      ...formattedFormData,
-      external_vessel_id: formData.external_vessel_id,
-      participants: flattenParticipants(selectedParticipants),
-      sections: flattenSections(preDefineSections),
-    };
-
-    console.log("Submit report payload:", payload);
-    await shipReportStore.createReport(payload);
+    await shipReportStore.updateReport(changedPayload, routeId);
   };
 
   return {
+    report,
     formData,
     visible,
     selectedSection,
@@ -882,7 +901,7 @@ export function useCreateShipReport() {
     handleRemove,
     addCustomSectionInputFields,
     updateSectionDetailsInputFields,
-    handleSubmitReport,
+    handleUpdateReport,
     vesselInfoFields,
     isLoadingType,
   };
