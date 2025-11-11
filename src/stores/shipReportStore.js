@@ -39,9 +39,12 @@ export const useShipReportStore = defineStore("shipReportStore", {
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.user) || Boolean(state.token),
-    isLoading: (state) => {
-      return (type) => state.operation.loading && state.operation.type === type;
-    },
+    isLoading: (state) => (type) =>
+      state.operation.loading && state.operation.type === type,
+    isSuccess: (state) => (type) =>
+      state.operation.success && state.operation.type === type,
+    isError: (state) => (type) =>
+      state.operation.isError && state.operation.type === type,
   },
   actions: {
     async fetchReports(page, search, type, filters) {
@@ -120,7 +123,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
       }
     },
 
-    async fetchOnBoardCrews(vesselName) {
+    async fetchOnBoardCrews(onBoardFrom, onBoardTo, vesselName) {
       this.operation = {
         loading: true,
         success: false,
@@ -131,6 +134,8 @@ export const useShipReportStore = defineStore("shipReportStore", {
       try {
         const { data } = await api.get(THIRD_PARTY_APIS.GET_ONBOARD_CREWS, {
           params: {
+            onboard_from: onBoardFrom,
+            onboard_to: onBoardTo,
             vessel_name: vesselName,
           },
         });
@@ -227,7 +232,7 @@ export const useShipReportStore = defineStore("shipReportStore", {
           success: true,
           isError: false,
           message: "Successfully created report.",
-          type: "created-report",
+          type: "create-report",
         };
       } catch (error) {
         this.operation = {
@@ -236,14 +241,6 @@ export const useShipReportStore = defineStore("shipReportStore", {
           isError: false,
           message:
             err?.response?.data || err.message || "Something went wrong.",
-          type: "create-report",
-        };
-      } finally {
-        this.operation = {
-          loading: false,
-          success: false,
-          isError: false,
-          message: "",
           type: "create-report",
         };
       }

@@ -18,18 +18,14 @@ const routeId = route.params.id;
 const {
   report,
   formData,
-  inputFields,
-  preDefineSections,
   orderedFields,
-
   handleUpdateReport,
   vesselInfoFields,
   isLoadingType,
+  loadingState,
 } = useEditShipReport();
 
 const {
-  viewReportLoading,
-  formData: formDataVisitor,
   addNewSectionInputFields,
   updateSectionDetailsInputFields,
   addCustomSectionInputFields,
@@ -74,8 +70,6 @@ const {
 } = useShipParticipants(routeId);
 
 const visitDate = ref(null);
-const reporter = ref();
-const shipsName = ref();
 
 watch(visitDate, (newVal) => {
   console.log("Visit Date:", dateFormatterYmd(newVal));
@@ -88,6 +82,15 @@ watch(visitDate, (newVal) => {
 
 onMounted(async () => {
   await shipReportStore.fetchOpenApiKeys();
+});
+
+const companiesLoaded = ref(false);
+
+onMounted(async () => {
+  if (!companiesLoaded.value) {
+    await shipReportStore.fetchCompanies();
+    companiesLoaded.value = true;
+  }
 });
 
 const goBack = () => {
@@ -114,10 +117,7 @@ const goBack = () => {
         </div>
       </div>
 
-      <div
-        v-if="isLoadingType('view-report')"
-        class="flex flex-col w-full space-y-6"
-      >
+      <div v-if="loadingState" class="flex flex-col w-full space-y-6">
         <!-- Vessel info skeletons -->
         <div
           v-for="n in 3"

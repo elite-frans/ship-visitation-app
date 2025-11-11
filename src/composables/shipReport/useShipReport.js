@@ -310,20 +310,20 @@ export function useShipReport(reportId, shipReportStore) {
           label: "Actions",
           items: [
             {
-              label: "Edit",
-              icon: "pi pi-pencil",
-              command: () =>
-                router.push({
-                  name: "EditShipReport",
-                  params: { id: row.id },
-                }),
-            },
-            {
               label: "View",
               icon: "pi pi-eye",
               command: () =>
                 router.push({
                   name: "ShipReportView",
+                  params: { id: row.id },
+                }),
+            },
+            {
+              label: "Edit",
+              icon: "pi pi-pencil",
+              command: () =>
+                router.push({
+                  name: "EditShipReport",
                   params: { id: row.id },
                 }),
             },

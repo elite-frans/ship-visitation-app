@@ -1,18 +1,48 @@
 import { useShipReportStore } from "@/stores/shipReportStore";
 import { dateFormatterYmd } from "@/utils/dateFormatterYmd";
+import { useToast } from "primevue";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 
 export function useCreateShipReport() {
-  const formData = reactive({
+  const initialFormData = {
+    visitation_start_date: null,
+    visitation_end_date: null,
     user_reporter: null,
     external_vessel_id: null,
+    date_visitation: null,
     visitation_port_id: null,
-    visitation_country_id: "a9b6c2e7-3eab-4a4b-9f0d-86b7e3aefc11",
+    visitor_name: null,
+    participants: [],
+    last_visitation_date: null,
     last_visitation_port_id: null,
+    last_psc_date: null,
     last_psc_port_id: null,
+    visitation_country_id: "a9b6c2e7-3eab-4a4b-9f0d-86b7e3aefc11",
+    last_psc_result_deficiencies: null,
     port_last_psc_inspection: null,
+    result_last_psc_inspection: null,
+    last_icbt_date: null,
     last_icbt_port_id: null,
-  });
+    last_icbt_result: null,
+    last_docking_date: null,
+    last_docking_place: null,
+    next_docking_place: null,
+  };
+
+  // const formData = reactive({
+  //   user_reporter: null,
+  //   external_vessel_id: null,
+  //   visitation_port_id: null,
+  //   visitation_country_id: "a9b6c2e7-3eab-4a4b-9f0d-86b7e3aefc11",
+  //   last_visitation_port_id: null,
+  //   last_psc_port_id: null,
+  //   port_last_psc_inspection: null,
+  //   last_icbt_port_id: null,
+  // });
+
+  const formData = reactive({ ...initialFormData });
+
+  const errors = reactive({});
 
   const shipReportStore = useShipReportStore();
 
@@ -33,7 +63,13 @@ export function useCreateShipReport() {
   const editingSectionCode = ref(null);
   const editableDetails = ref("");
 
+  const toast = useToast();
+
   const isLoadingType = (type) => shipReportStore.isLoading(type);
+  const isSuccessType = (type) => shipReportStore.isSuccess(type);
+
+  const isSubmitting = ref(false);
+  const showSuccess = ref(false);
 
   const vessels = [
     {
@@ -93,14 +129,6 @@ export function useCreateShipReport() {
   ]);
 
   const inputFields = reactive([
-    // {
-    //   key: "ship_name",
-    //   model: "ship_name",
-    //   label: "Ship's Name",
-    //   type: "select",
-    //   placeholder: "Select Ship",
-    //   required: true,
-    // },
     //* LAST VISITATION
     {
       group_input: "Date / Port Name of Visitation",
@@ -279,16 +307,59 @@ export function useCreateShipReport() {
     },
   ]);
 
+  const resetForm = () => {
+    Object.keys(initialFormData).forEach((key) => {
+      formData[key] = initialFormData[key];
+    });
+  };
+
+  // watch(
+  //   () => formData.external_vessel_id,
+  //   async (newVesselId) => {
+  //     if (!newVesselId) return;
+
+  //     const selectedVessel = vessels.find((v) => v.id === newVesselId);
+  //     if (!selectedVessel) return;
+
+  //     await shipReportStore.fetchOnBoardCrews(selectedVessel.value);
+
+  //     const onboardCrews = shipReportStore.onBoardCrews || [];
+  //     const participantsField = inputFields.find(
+  //       (f) => f.key === "participants"
+  //     );
+
+  //     participantsField.options = onboardCrews.map((crew) => ({
+  //       label: `${crew.rank_name} - ${crew.full_name}`,
+  //       value: crew,
+  //       raw: crew,
+  //     }));
+  //   }
+  // );
+
   watch(
-    () => formData.external_vessel_id,
-    async (newVesselId) => {
-      if (!newVesselId) return;
+    [
+      () => formData.external_vessel_id,
+      () => formData.visitation_start_date,
+      () => formData.visitation_end_date,
+    ],
+    async ([newVesselId, startDate, endDate]) => {
+      if (!newVesselId || !startDate) return;
 
       const selectedVessel = vessels.find((v) => v.id === newVesselId);
       if (!selectedVessel) return;
 
-      await shipReportStore.fetchOnBoardCrews(selectedVessel.value);
+      // Format dates for API
+      const onboardFrom = startDate ? dateFormatterYmd(startDate) : null;
+      const onboardTo = endDate ? dateFormatterYmd(endDate) : null;
 
+      // Call your store action with all filters
+      await shipReportStore.fetchOnBoardCrews(
+        onboardFrom,
+        onboardTo,
+        selectedVessel.value
+      );
+
+      // Map API response to multiselect options
       const onboardCrews = shipReportStore.onBoardCrews || [];
       const participantsField = inputFields.find(
         (f) => f.key === "participants"
@@ -538,6 +609,22 @@ export function useCreateShipReport() {
       default:
         return "";
     }
+  };
+
+  const validateFormFields = () => {
+    errors.value = {}; // reset previous errors
+    let isValid = true;
+
+    const allFields = [...vesselInfoFields, ...inputFields];
+
+    allFields.forEach((field) => {
+      if (field.required && !formData[field.model]) {
+        errors[field.model] = `${field.label} is required`;
+        isValid = false;
+      }
+    });
+
+    return isValid;
   };
 
   const addNewSectionInputFields = reactive([
@@ -823,6 +910,16 @@ export function useCreateShipReport() {
   };
 
   const handleSubmitReport = async () => {
+    if (!validateFormFields()) {
+      toast.add({
+        severity: "warn",
+        summary: "Validation Error",
+        detail: "Please fill in all required fields.",
+        life: 3000,
+      });
+      return;
+    }
+
     const formattedFormData = Object.entries(formData).reduce(
       (acc, [key, value]) => {
         if (value instanceof Date) {
@@ -839,6 +936,8 @@ export function useCreateShipReport() {
       ? formData.participants
       : [formData.participants];
 
+    if (!selectedParticipants) return null;
+
     const payload = {
       ...formattedFormData,
       external_vessel_id: formData.external_vessel_id,
@@ -848,6 +947,10 @@ export function useCreateShipReport() {
 
     console.log("Submit report payload:", payload);
     await shipReportStore.createReport(payload);
+
+    if (isSuccessType("create-report")) {
+      resetForm();
+    }
   };
 
   return {
@@ -885,5 +988,6 @@ export function useCreateShipReport() {
     handleSubmitReport,
     vesselInfoFields,
     isLoadingType,
+    isSuccessType,
   };
 }

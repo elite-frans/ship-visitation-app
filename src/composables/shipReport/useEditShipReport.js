@@ -348,7 +348,7 @@ export function useEditShipReport() {
   );
 
   onMounted(async () => {
-    await shipReportStore.fetchOpenApiKeys();
+    // await shipReportStore.fetchOpenApiKeys();
 
     const optionsData = shipReportStore.apiKeys;
 
@@ -375,7 +375,6 @@ export function useEditShipReport() {
   });
 
   onMounted(async () => {
-    await shipReportStore.fetchOpenApiKeys();
     const routeId = route.params.id;
     await shipReportStore.viewReport(routeId);
     populateForm(report.value);
@@ -383,6 +382,13 @@ export function useEditShipReport() {
 
   watch(report, (newVal) => {
     if (newVal) populateForm(newVal);
+  });
+
+  const loadingState = computed(() => {
+    return (
+      shipReportStore.isLoading("view-report") ||
+      shipReportStore.isLoading("fetch-api-keys")
+    );
   });
 
   const preDefineSections = reactive([
@@ -904,5 +910,6 @@ export function useEditShipReport() {
     handleUpdateReport,
     vesselInfoFields,
     isLoadingType,
+    loadingState,
   };
 }

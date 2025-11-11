@@ -56,9 +56,9 @@ export function useShipParticipants(reportId, report, type) {
     }
   );
 
-  onMounted(async () => {
-    await shipReportStore.fetchCompanies();
-  });
+  // onMounted(async () => {
+  //   await shipReportStore.fetchCompanies();
+  // });
 
   watch(
     () => formData.company,

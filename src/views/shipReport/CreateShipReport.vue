@@ -1,4 +1,6 @@
 <script setup>
+import LoadingDialog from "@/components/dialogs/LoadingDialog.vue";
+import SuccessDialog from "@/components/dialogs/SuccessDialog.vue";
 import { useCreateShipReport } from "@/composables/shipReport/useCreateShipReport";
 import { useShipReportStore } from "@/stores/shipReportStore";
 import { dateFormatter } from "@/utils/dateFormatter";
@@ -44,6 +46,7 @@ const {
   handleSubmitReport,
   vesselInfoFields,
   isLoadingType,
+  isSuccessType,
 } = useCreateShipReport();
 
 const router = useRouter();
@@ -59,10 +62,6 @@ watch(visitDate, (newVal) => {
     console.log("Start:", dateFormatterYmd(start));
     console.log("End:", dateFormatterYmd(end));
   }
-});
-
-onMounted(async () => {
-  await shipReportStore.fetchOpenApiKeys();
 });
 
 const goBack = () => {
@@ -91,7 +90,7 @@ const goBack = () => {
       </div>
 
       <!-- Input field Forms -->
-      <form class="w-full pt-10">
+      <form @submit.prevent="handleSubmitReport" class="w-full pt-10">
         <div class="space-y-6">
           <div
             class="grid grid-cols-1 space-y-1 mb-2 md:grid-cols-2 md:items-center md:mb-0"
@@ -147,7 +146,7 @@ const goBack = () => {
               :loading="isLoadingType('create-report')"
               label="Submit"
               size="small"
-              @click="handleSubmitReport"
+              type="submit"
             />
           </div>
         </div>
@@ -542,4 +541,14 @@ const goBack = () => {
       </template>
     </div>
   </Dialog>
+
+  <LoadingDialog
+    :loading="isLoadingType('create-report')"
+    title="Submitting Report"
+  />
+  <SuccessDialog
+    :success="isSuccessType('create-report')"
+    title="Success"
+    message="Your report has been submitted successfully."
+  />
 </template>

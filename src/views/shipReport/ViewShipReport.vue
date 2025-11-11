@@ -20,6 +20,15 @@ const reportId = route.params.id;
 const shipReportStore = useShipReportStore();
 const { report } = storeToRefs(shipReportStore);
 
+const companiesLoaded = ref(false);
+
+onMounted(async () => {
+  if (!companiesLoaded.value) {
+    await shipReportStore.fetchCompanies();
+    companiesLoaded.value = true;
+  }
+});
+
 const {
   formData,
   getOptions,
@@ -124,27 +133,7 @@ onMounted(() => {
       </div>
       <divider />
       <div class="space-y-9">
-        <div class="space-y-7">
-          <h1 class="text-md font-bold">Visitation Details:</h1>
-          <div class="space-y-3">
-            <div class="grid grid-cols-2 text-sm">
-              <h1 class="text-neutral-500">Start Date Visit:</h1>
-              <p>{{ dateFormatter(report?.visitation_start_date) }}</p>
-            </div>
-            <div class="grid grid-cols-2 text-sm">
-              <h1 class="text-neutral-500">End Date Visit:</h1>
-              <p>{{ dateFormatter(report?.visitation_end_date) }}</p>
-            </div>
-            <div class="grid grid-cols-2 text-sm">
-              <h1 class="text-neutral-500">Port:</h1>
-              <p>{{ report?.visitation_port_name }}</p>
-            </div>
-            <div class="grid grid-cols-2 text-sm">
-              <h1 class="text-neutral-500">Country:</h1>
-              <p>{{ report?.visitation_country_name }}</p>
-            </div>
-          </div>
-        </div>
+        <!-- //* VESSEL DETAILS -->
         <div class="space-y-7">
           <h1 class="text-md font-bold">Vessel Details:</h1>
           <div class="space-y-3">
@@ -175,6 +164,97 @@ onMounted(() => {
             <div class="grid grid-cols-2 text-sm">
               <h1 class="text-neutral-500">Fleet:</h1>
               <p>{{ report?.vessel_fleet }}</p>
+            </div>
+          </div>
+        </div>
+        <divider />
+        <!-- //* VISITATION DETAILS -->
+        <div class="space-y-7">
+          <h1 class="text-md font-bold">Visitation Details:</h1>
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Start Date Visit:</h1>
+              <p>{{ dateFormatter(report?.visitation_start_date) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">End Date Visit:</h1>
+              <p>{{ dateFormatter(report?.visitation_end_date) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Port:</h1>
+              <p>{{ report?.visitation_port_name }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Country:</h1>
+              <p>{{ report?.visitation_country_name }}</p>
+            </div>
+          </div>
+        </div>
+
+        <divider />
+        <!-- //* VISITATION DETAILS -->
+        <div class="space-y-7">
+          <h1 class="text-md font-bold">Last ICBT Result Details:</h1>
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Date:</h1>
+              <p>{{ dateFormatter(report?.last_icbt_date) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Port Name:</h1>
+              <p>{{ dateFormatter(report?.last_icbt_port_name) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Port:</h1>
+              <p>{{ report?.visitation_port_name }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Result:</h1>
+              <p>{{ report?.last_icbt_result }}</p>
+            </div>
+          </div>
+        </div>
+
+        <divider />
+        <!-- //* PSC DETAILS -->
+        <div class="space-y-7">
+          <h1 class="text-md font-bold">Last PSC Result Details:</h1>
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Date:</h1>
+              <p>{{ dateFormatter(report?.last_psc_date) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Port Name:</h1>
+              <p>{{ dateFormatter(report?.last_psc_port_name) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Port:</h1>
+              <p>{{ report?.visitation_port_name }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Result:</h1>
+              <p>{{ report?.last_psc_result }}</p>
+            </div>
+          </div>
+        </div>
+
+        <divider />
+        <!-- //* DOCKING DETAILS -->
+        <div class="space-y-7">
+          <h1 class="text-md font-bold">Last Docking Details:</h1>
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Date:</h1>
+              <p>{{ dateFormatter(report?.last_docking_date) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Last Place:</h1>
+              <p>{{ dateFormatter(report?.last_docking_place) }}</p>
+            </div>
+            <div class="grid grid-cols-2 text-sm">
+              <h1 class="text-neutral-500">Next Place:</h1>
+              <p>{{ report?.next_docking_place }}</p>
             </div>
           </div>
         </div>
